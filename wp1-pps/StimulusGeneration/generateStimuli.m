@@ -4,8 +4,8 @@ function generateStimuli(nBuildingBlocks,whichBlock,trajectory)
 
 % Inputs:
 %% trajectory
-% trajectory = 1; % loom-rec (block 1-2) // 0 to 30 deg (block 3)
-% trajectory = 2; % rec-loom (block 1-2) // 30 to 0 deg (block 3)
+% trajectory = 1; % loom-rec (block 1-2) // 0 to 30 deg i.e. left (block 3)
+% trajectory = 2; % rec-loom (block 1-2) // 0 to -30 deg i.e. right (block 3)
 % trajectory = 3; % loom-loom (block 2)
 % trajectory = 4; % rec-rec (block 2)
 
@@ -54,7 +54,7 @@ PPS = [0.05 0.1 0.15];
 ARS = [0.8 0.9 1.0];
 EPS = [2.5 3.0 3.5];
 allSpace = [PPS ARS EPS];
-v = 1; % m/s
+v = 0.5; % velocity in m/s
 
 %% Create a home for saved parameters
 if whichBlock ~= 3
@@ -241,8 +241,6 @@ if whichBlock ~= 3
         rMov1 = [x(stimNo) y(stimNo)];
         rMov2 = [y(stimNo) z(stimNo)];
 
-        % rMain = [rStatStart,rMov1,rStatMiddle,rMov2,rStatEnd];
-
         % Save which space category the moving portions begin and end in
         % Start of moving portion 1
         if ismember(rMov1(1),PPS)
@@ -286,7 +284,7 @@ if whichBlock ~= 3
         durStatMiddle = (randi(10,1)+10)/10;
         durStatEnd = (randi(10,1)+10)/10;
 
-        % Moving portions
+        % Moving portions: duration calculated from distance and velocity
         durMov1 = abs(rMov1(2)-rMov1(1))/v;
         durMov2 = abs(rMov2(2)-rMov2(1))/v;
 
@@ -307,38 +305,28 @@ if whichBlock ~= 3
         %% Generate square waves and intensity ramps for each portion
 
         % Generate square waves for stationary portions
-        tStatStart = 0:1/fs:durations.durStatStart;
+        tStatStart = linspace(0,durations.durStatStart,durations.durStatStart*fs);
         statStart = square(2*pi*frequency*tStatStart);
 
-        tStatMiddle = 0:1/fs:durations.durStatMiddle;
+        tStatMiddle = linspace(0,durations.durStatMiddle,durations.durStatMiddle*fs);
         statMiddle = square(2*pi*frequency*tStatMiddle);
 
-        tStatEnd = 0:1/fs:durations.durStatEnd;
+        tStatEnd = linspace(0,durations.durStatEnd,durations.durStatEnd*fs);
         statEnd  = square(2*pi*frequency*tStatEnd);
-
-        % Create corresponding intensity ramps
-        intensityRampStart = 1./linspace(rStatStart(1),rStatStart(2),length(statStart));
-        intensityRampMiddle = 1./linspace(rStatMiddle(1),rStatMiddle(2),length(statMiddle));
-        intensityRampEnd = 1./linspace(rStatEnd(1),rStatEnd(2),length(statEnd));
 
         %
         % Generate square waves for moving portions
-        tMov1 = 0:1/fs:durations.durMov1;
+        tMov1 = linspace(0,durations.durMov1,durations.durMov1*fs);
         mov1 = square(2*pi*frequency*tMov1);
 
-        tMov2 = 0:1/fs:durations.durMov2;
+        tMov2 = linspace(0,durations.durMov2,durations.durMov2*fs);
         mov2 = square(2*pi*frequency*tMov2);
-
-        % Create corresponding intensity ramps
-        intensityRampMov1 = 1./linspace(rMov1(1),rMov1(2),length(mov1));
-        intensityRampMov2 = 1./linspace(rMov2(1),rMov2(2),length(mov2));
 
         %% Concatenate and spatialize
         % intensityRampMain = [intensityRampStart intensityRampMov1 intensityRampMiddle intensityRampMov2 intensityRampEnd];
         allPortions = [statStart mov1 statMiddle mov2 statEnd];
-        [stim, ~, ~, rActual, idx] = local_SOFAspat(allPortions',Obj,azi,ele,rMain);
-        stim = rescale(stim,-0.8,0.8);
-
+        [stim, ~, ~, rActual, ~] = local_SOFAspat(allPortions',Obj,azi,ele,rMain);
+        
         totalDur = durMov1+durMov2+durStatStart+durStatMiddle+durStatEnd; % in s
 
         % Save results to wav, add parameters to the cell array later saved out
@@ -367,12 +355,12 @@ elseif whichBlock == 3 % Azimuth block
         switch trajectory
             case 1
                 x = 0;
-                y = 30;
-                z = 0;
-            case 2
-                x = 30;
-                y = 0;
+                y = 30; % left
                 z = 30;
+            case 2
+                x = 0;
+                y = -30; % right
+                z = -30;
         end % switch trajectory block 3
 
         aziStatStart = [x x];
@@ -401,31 +389,32 @@ elseif whichBlock == 3 % Azimuth block
             'durMov2',durMov2, ...
             'durStatEnd', durStatEnd);
 
+        totalDur = durMov1+durMov2+durStatStart+durStatMiddle+durStatEnd; % in s
+
         %% Generate square waves and intensity ramps for each portion
 
         % Generate square waves for stationary portions
-        tStatStart = 0:1/fs:durations.durStatStart;
+        tStatStart = linspace(0,durations.durStatStart,durations.durStatStart*fs);
         statStart = square(2*pi*frequency*tStatStart);
 
-        tStatMiddle = 0:1/fs:durations.durStatMiddle;
+        tStatMiddle = linspace(0,durations.durStatMiddle,durations.durStatMiddle*fs);
         statMiddle = square(2*pi*frequency*tStatMiddle);
 
-        tStatEnd = 0:1/fs:durations.durStatEnd;
+        tStatEnd = linspace(0,durations.durStatEnd,durations.durStatEnd*fs);
         statEnd  = square(2*pi*frequency*tStatEnd);
 
         %
         % Generate square waves for moving portions
-        tMov1 = 0:1/fs:durations.durMov1;
+        tMov1 = linspace(0,durations.durMov1,durations.durMov1*fs);
         mov1 = square(2*pi*frequency*tMov1);
 
-        tMov2 = 0:1/fs:durations.durMov2;
+        tMov2 = linspace(0,durations.durMov2,durations.durMov2*fs);
         mov2 = square(2*pi*frequency*tMov2);
 
         %% Concatenate and spatialize
         allPortions = [statStart mov1 statMiddle mov2 statEnd];
-        stim = local_SOFAspat(allPortions',Obj,aziMain,ele,rBlock3(stimNo));
-
-        stim = rescale(stim,-1,1);
+        rMain = linspace(rBlock3(stimNo),rBlock3(stimNo),length(allPortions));
+        stim = local_SOFAspat(allPortions',Obj,aziMain,ele,rMain);
 
         % Save which space category this stim belongs to
         if ismember(rBlock3(stimNo),PPS)
@@ -436,8 +425,6 @@ elseif whichBlock == 3 % Azimuth block
             whichSpace = 3;
         end
         
-        totalDur = durMov1+durMov2+durStatStart+durStatMiddle+durStatEnd; % in s
-
         % Save results to wav, add parameters to the cell array later saved out
         % to csv
         digits = ceil(log10(stimuliPerTrajectory + 1));
@@ -468,8 +455,10 @@ end % function
 
 function [out, aziActual, eleActual, rActual, idx] = local_SOFAspat(signal,Obj,azi,ele,r)
 if length(r)~=length(signal)
-    error('Error: signal and r trajectory need to have the same length')
+    errorText = ['Signal (length: ', num2str(length(signal)), ') and r (length: ',...
+        num2str(length(r)),') need to have the same length!'];
+    error(errorText)
 end
-
-[out, aziActual, eleActual, rActual, idx] = SOFAspat(signal./r,Obj,azi,ele,r);
+signal = db2mag(-100)*signal; % -26 dB to compenbsate for distance change from 1 to 0.05 and additional 65 dB to compensate for the particular type of HRTFs
+[out, aziActual, eleActual, rActual, idx] = SOFAspat(signal./r(:),Obj,azi,ele,r);
 end

@@ -24,7 +24,7 @@ function stimArray = getStimuliArray3(folders)
 
 %% Input check
 
-% folders = {'21-Nov-2024-118','21-Nov-2024-118_1'};
+% folders = {'25-Nov-2024-1448','25-Nov-2024-1448_1'};
 % if input is string, put it into cell
 if ischar(folders)
     if ~exist(folders, 'dir')
