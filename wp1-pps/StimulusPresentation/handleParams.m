@@ -107,8 +107,8 @@ oldParamsMatchFlag = 0;
 logFileFlag = 0;
 % log header - needed for sanity check as well
 logHeader = {'subNum', 'blockNo', 'bigBlock', 'trialNo', ... 
-    'lastDistance', 'space', 'trajectory', 'SPL', 'totalDur', 'accuracy', 'respTime', 'iti', 'trialStart',... 
-    'soundOnset', 'trigger'};
+    'lastDistance', 'space', 'trajectory', 'SPL', 'totalDur', 'accDistance', 'accDirection', 'respTime', ...
+    'respSpace', 'respDirection','trigger'};
 
 % check if subject folder already exists
 if exist(dirN, 'dir')
@@ -304,7 +304,7 @@ if logFileFlag
     
     % extract recorded response times and trial accuracies (use both as sanity check)
     logRT = cell2mat(logVar(2:end, strcmp(logHeader, 'respTime')));
-    logAcc = cell2mat(logVar(2:end, strcmp(logHeader, 'accuracy')));
+    logAcc = cell2mat(logVar(2:end, strcmp(logHeader, 'accDistance')));
     % sanity check against bad logs
     if ~isequal(size(logRT), size(logAcc))
         error('Estimates for the number of past trials are inconsistent, investigate!');

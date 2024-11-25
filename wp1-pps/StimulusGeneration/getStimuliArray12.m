@@ -26,8 +26,8 @@ function stimArray = getStimuliArray12(folders)
 
 %% Input check
 
-% folders = {'14-Nov-2024-1141','14-Nov-2024-1141_1'}; % block 1
-% folders = {'14-Nov-2024-1142','14-Nov-2024-1142_1','14-Nov-2024-1142_2','14-Nov-2024-1142_3'}; % block 2
+% folders = {'25-Nov-2024-1435','25-Nov-2024-1435_1'}; % block 1
+% folders = {'25-Nov-2024-1436','25-Nov-2024-1436_1','25-Nov-2024-1437','25-Nov-2024-1437_1'}; % block 2
 % folders = {'15-Nov-2024-926','15-Nov-2024-927'}; % familiarization
 
 % if input is string, put it into cell
@@ -112,7 +112,7 @@ stimArray = vertcat(stimArray{:});
 
 %% Ending
 %%%%%%%% HARD-CODED NAME %%%%%%%%%%%
-save('stimArrayPractice.mat',"stimArray");
+save('stimArrayBlock2.mat',"stimArray");
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 disp([char(10), 'Finished, returning']);
 
