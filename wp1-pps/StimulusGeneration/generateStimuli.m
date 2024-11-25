@@ -37,8 +37,11 @@ end
 mkdir(wavDir);
 
 % Load HRTF dataset for spatialization
-% sofaPath = 'C:\Users\pkovacs\Documents\MATLAB\SOFAtoolbox-master\SOFAtoolbox';
-% addpath(sofaPath);
+if not(exist("SOFAdbPath.m","file"))
+sofaPath = '\\kfs\fileserver\ProjektDaten\CherISH\code\SOFAtoolbox\SOFAtoolbox';
+addpath(sofaPath);
+SOFAstart;
+end
 database = 'scut';
 HRTFfilename = 'SCUT_KEMAR_radius_all.sofa';
 fullfn = fullfile(SOFAdbPath, 'database', database, HRTFfilename);
@@ -51,6 +54,7 @@ PPS = [0.05 0.1 0.15];
 ARS = [0.8 0.9 1.0];
 EPS = [2.5 3.0 3.5];
 allSpace = [PPS ARS EPS];
+v = 1; % m/s
 
 %% Create a home for saved parameters
 if whichBlock ~= 3
@@ -228,23 +232,7 @@ if whichBlock ~= 3
     for stimNo = 1:stimuliPerTrajectory
         frequency = (randi(4,1)+4)*100; % 500-800 Hz with round 100 values
 
-        %% Set durations
-        % Static portions: 800-1100 ms, with round 100 ms values, in secs
-        durStatStart = (randi(4,1)+7)/10;
-        durStatMiddle = (randi(4,1)+7)/10;
-        durStatEnd = (randi(4,1)+7)/10;
-
-        % Moving portions: 1000-2000 ms, with round 100 ms values, in secs
-        durMov1 = (randi(10,1)+10)/10;
-        durMov2 = (randi(10,1)+10)/10;
-
-        durations = struct( ...
-            'durStatStart',durStatStart, ...
-            'durMov1',durMov1, ...
-            'durStatMiddle',durStatMiddle, ...
-            'durMov2',durMov2, ...
-            'durStatEnd', durStatEnd);
-
+        
         %% Radii for this stimulus
         rStatStart = [x(stimNo) x(stimNo)];
         rStatMiddle = [y(stimNo) y(stimNo)];
@@ -253,7 +241,7 @@ if whichBlock ~= 3
         rMov1 = [x(stimNo) y(stimNo)];
         rMov2 = [y(stimNo) z(stimNo)];
 
-        rMain = [rStatStart,rMov1,rStatMiddle,rMov2,rStatEnd];
+        % rMain = [rStatStart,rMov1,rStatMiddle,rMov2,rStatEnd];
 
         % Save which space category the moving portions begin and end in
         % Start of moving portion 1
@@ -292,6 +280,29 @@ if whichBlock ~= 3
             stopSpaceMov2 = 3;
         end
 
+        %% Set durations
+        % Static portions
+        durStatStart = (randi(10,1)+10)/10; % 1000-2000 ms with round 100 values
+        durStatMiddle = (randi(10,1)+10)/10;
+        durStatEnd = (randi(10,1)+10)/10;
+
+        % Moving portions
+        durMov1 = abs(rMov1(2)-rMov1(1))/v;
+        durMov2 = abs(rMov2(2)-rMov2(1))/v;
+
+        durations = struct( ...
+            'durStatStart',durStatStart, ...
+            'durMov1',durMov1, ...
+            'durStatMiddle',durStatMiddle, ...
+            'durMov2',durMov2, ...
+            'durStatEnd', durStatEnd);
+
+        rMain = [linspace(rStatStart(1),rStatStart(2),durStatStart*fs),...
+            linspace(rMov1(1),rMov1(2),durMov1*fs),...
+            linspace(rStatMiddle(1),rStatMiddle(2),durStatMiddle*fs),...
+            linspace(rMov2(1),rMov2(2),durMov2*fs),...
+            linspace(rStatEnd(1),rStatEnd(2),durStatEnd*fs)];
+
 
         %% Generate square waves and intensity ramps for each portion
 
@@ -323,10 +334,10 @@ if whichBlock ~= 3
         intensityRampMov2 = 1./linspace(rMov2(1),rMov2(2),length(mov2));
 
         %% Concatenate and spatialize
-        intensityRampMain = [intensityRampStart intensityRampMov1 intensityRampMiddle intensityRampMov2 intensityRampEnd];
-        allPortions = [statStart mov1 statMiddle mov2 statEnd].* intensityRampMain;
-        stim = SOFAspat(allPortions',Obj,azi,ele,rMain);
-        stim = rescale(stim,-1,1);
+        % intensityRampMain = [intensityRampStart intensityRampMov1 intensityRampMiddle intensityRampMov2 intensityRampEnd];
+        allPortions = [statStart mov1 statMiddle mov2 statEnd];
+        [stim, ~, ~, rActual, idx] = local_SOFAspat(allPortions',Obj,azi,ele,rMain);
+        stim = rescale(stim,-0.8,0.8);
 
         totalDur = durMov1+durMov2+durStatStart+durStatMiddle+durStatEnd; % in s
 
@@ -412,7 +423,8 @@ elseif whichBlock == 3 % Azimuth block
 
         %% Concatenate and spatialize
         allPortions = [statStart mov1 statMiddle mov2 statEnd];
-        stim = SOFAspat(allPortions',Obj,aziMain,ele,rBlock3(stimNo));
+        stim = local_SOFAspat(allPortions',Obj,aziMain,ele,rBlock3(stimNo));
+
         stim = rescale(stim,-1,1);
 
         % Save which space category this stim belongs to
@@ -453,3 +465,11 @@ writetable(T,strcat('./', wavDir, '/', strcat(wavDir, '-', 'StimuliData.csv')));
 disp([newline, 'Task done, files and parameters are saved to directory ', wavDir, newline]);
 
 end % function
+
+function [out, aziActual, eleActual, rActual, idx] = local_SOFAspat(signal,Obj,azi,ele,r)
+if length(r)~=length(signal)
+    error('Error: signal and r trajectory need to have the same length')
+end
+
+[out, aziActual, eleActual, rActual, idx] = SOFAspat(signal./r,Obj,azi,ele,r);
+end
