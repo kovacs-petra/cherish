@@ -16,10 +16,13 @@ function generateStimuli(nBuildingBlocks,whichBlock,trajectory)
 stimuliPerTrajectory = nBuildingBlocks*9;
 
 %% block (1:3):
-% whichBlock = 1; % BIG block (task block)
+% Big block (task block)
+% 1 - loom-rec and rec-loom stimuoli only
+% 2 - besides the conditions in 1, there's also loom-loom and rec-rec
+% conditions
+% 3 - sound is fixed in distance, moves left or right
 
 %% Parameters and to-do independent of block number
-
 ele = [0 0]; % elevation is always 0
 
 % Create directory for saving audio data + parameters files
@@ -38,9 +41,9 @@ mkdir(wavDir);
 
 % Load HRTF dataset for spatialization
 if not(exist("SOFAdbPath.m","file"))
-sofaPath = '\\kfs\fileserver\ProjektDaten\CherISH\code\SOFAtoolbox\SOFAtoolbox';
-addpath(sofaPath);
-SOFAstart;
+    sofaPath = '\\kfs\fileserver\ProjektDaten\CherISH\code\SOFAtoolbox\SOFAtoolbox';
+    addpath(sofaPath);
+    SOFAstart;
 end
 database = 'scut';
 HRTFfilename = 'SCUT_KEMAR_radius_all.sofa';
@@ -87,8 +90,6 @@ else
         'frequency',...
         'durStatStart',... % Duration data
         'durMov1',...
-        'durStatMiddle',...
-        'durMov2',...
         'durStatEnd',...
         'totalDur',...
         'distance',...     % Space data - distance in m
@@ -210,7 +211,7 @@ if whichBlock ~= 3
 
     end % switch trajectory blocks 1-2
 
-elseif whichBlock == 3 % x, y and z denote azimuth (set later). R is set here:
+elseif whichBlock == 3 % x and y denote azimuth (set later). R is set here:
     rBlock3 = [...
         repmat(PPS(1),1,nBuildingBlocks),...
         repmat(PPS(2),1,nBuildingBlocks),...
@@ -356,49 +357,38 @@ elseif whichBlock == 3 % Azimuth block
             case 1
                 x = 0;
                 y = 30; % left
-                z = 30;
             case 2
                 x = 0;
                 y = -30; % right
-                z = -30;
         end % switch trajectory block 3
 
         aziStatStart = [x x];
-        aziStatMiddle = [y y];
-        aziStatEnd = [z z];
+        aziStatEnd = [y y];
 
         aziMov1 = [x y];
-        aziMov2 = [y z];
 
-        aziMain = [aziStatStart,aziMov1,aziStatMiddle,aziMov2,aziStatEnd];
+        aziMain = [aziStatStart,aziMov1,aziStatEnd];
 
         %% Set durations
         % Static portions: 800-1100 ms, with round 100 ms values, in secs
         durStatStart = (randi(4,1)+7)/10;
-        durStatMiddle = (randi(4,1)+7)/10;
         durStatEnd = (randi(4,1)+7)/10;
 
-        % Moving portions: 1000-2000 ms, with round 100 ms values, in secs
+        % Moving portion: 1000-2000 ms, with round 100 ms values, in secs
         durMov1 = (randi(10,1)+10)/10;
-        durMov2 = (randi(10,1)+10)/10;
 
         durations = struct( ...
             'durStatStart',durStatStart, ...
             'durMov1',durMov1, ...
-            'durStatMiddle',durStatMiddle, ...
-            'durMov2',durMov2, ...
             'durStatEnd', durStatEnd);
 
-        totalDur = durMov1+durMov2+durStatStart+durStatMiddle+durStatEnd; % in s
+        totalDur = durStatStart+durMov1+durStatEnd; % in s
 
         %% Generate square waves and intensity ramps for each portion
 
         % Generate square waves for stationary portions
         tStatStart = linspace(0,durations.durStatStart,durations.durStatStart*fs);
         statStart = square(2*pi*frequency*tStatStart);
-
-        tStatMiddle = linspace(0,durations.durStatMiddle,durations.durStatMiddle*fs);
-        statMiddle = square(2*pi*frequency*tStatMiddle);
 
         tStatEnd = linspace(0,durations.durStatEnd,durations.durStatEnd*fs);
         statEnd  = square(2*pi*frequency*tStatEnd);
@@ -408,11 +398,8 @@ elseif whichBlock == 3 % Azimuth block
         tMov1 = linspace(0,durations.durMov1,durations.durMov1*fs);
         mov1 = square(2*pi*frequency*tMov1);
 
-        tMov2 = linspace(0,durations.durMov2,durations.durMov2*fs);
-        mov2 = square(2*pi*frequency*tMov2);
-
         %% Concatenate and spatialize
-        allPortions = [statStart mov1 statMiddle mov2 statEnd];
+        allPortions = [statStart mov1 statEnd];
         rMain = linspace(rBlock3(stimNo),rBlock3(stimNo),length(allPortions));
         stim = local_SOFAspat(allPortions',Obj,aziMain,ele,rMain);
 
@@ -435,8 +422,8 @@ elseif whichBlock == 3 % Azimuth block
         end
 
         filename = strcat(wavDir, '-', temp, num2str(stimNo));
-        outCsv(stimNo+1, :) = {filename, frequency, durations.durStatStart, durations.durMov1, durations.durStatMiddle, ...
-            durations.durMov2, durations.durStatEnd, totalDur, rBlock3(stimNo), whichSpace, trajectory};
+        outCsv(stimNo+1, :) = {filename, frequency, durations.durStatStart, durations.durMov1, ...
+            durations.durStatEnd, totalDur, rBlock3(stimNo), whichSpace, trajectory};
         audiowrite(strcat('./', wavDir, '/', filename, '.wav'), stim, fs);
 
     end % stimulus generation loop for block 3
@@ -459,6 +446,6 @@ if length(r)~=length(signal)
         num2str(length(r)),') need to have the same length!'];
     error(errorText)
 end
-signal = db2mag(-100)*signal; % -26 dB to compenbsate for distance change from 1 to 0.05 and additional 65 dB to compensate for the particular type of HRTFs
+signal = db2mag(-100)*signal; % -26 dB to compensate for distance change from 1 to 0.05 and additional 65 dB to compensate for the particular type of HRTFs
 [out, aziActual, eleActual, rActual, idx] = SOFAspat(signal./r(:),Obj,azi,ele,r);
 end
