@@ -281,20 +281,13 @@ if whichBlock ~= 3
 
         %% Set durations
         % Static portions
-        durStatStart = (randi(10,1)+10)/10; % 1000-2000 ms with round 100 values
-        durStatMiddle = (randi(10,1)+10)/10;
-        durStatEnd = (randi(10,1)+10)/10;
+        durStatStart = (randi(6,1)+9)/10; % 1000-1500 ms with round 100 values
+        durStatMiddle = (randi(6,1)+9)/10;
+        durStatEnd = (randi(6,1)+14)/10; % 1500-2000 ms
 
         % Moving portions: duration calculated from distance and velocity
         durMov1 = abs(rMov1(2)-rMov1(1))/v;
         durMov2 = abs(rMov2(2)-rMov2(1))/v;
-
-        durations = struct( ...
-            'durStatStart',durStatStart, ...
-            'durMov1',durMov1, ...
-            'durStatMiddle',durStatMiddle, ...
-            'durMov2',durMov2, ...
-            'durStatEnd', durStatEnd);
 
         rMain = [linspace(rStatStart(1),rStatStart(2),durStatStart*fs),...
             linspace(rMov1(1),rMov1(2),durMov1*fs),...
@@ -306,21 +299,21 @@ if whichBlock ~= 3
         %% Generate square waves and intensity ramps for each portion
 
         % Generate square waves for stationary portions
-        tStatStart = linspace(0,durations.durStatStart,durations.durStatStart*fs);
+        tStatStart = linspace(0,durStatStart,durStatStart*fs);
         statStart = square(2*pi*frequency*tStatStart);
 
-        tStatMiddle = linspace(0,durations.durStatMiddle,durations.durStatMiddle*fs);
+        tStatMiddle = linspace(0,durStatMiddle,durStatMiddle*fs);
         statMiddle = square(2*pi*frequency*tStatMiddle);
 
-        tStatEnd = linspace(0,durations.durStatEnd,durations.durStatEnd*fs);
+        tStatEnd = linspace(0,durStatEnd,durStatEnd*fs);
         statEnd  = square(2*pi*frequency*tStatEnd);
 
         %
         % Generate square waves for moving portions
-        tMov1 = linspace(0,durations.durMov1,durations.durMov1*fs);
+        tMov1 = linspace(0,durMov1,durMov1*fs);
         mov1 = square(2*pi*frequency*tMov1);
 
-        tMov2 = linspace(0,durations.durMov2,durations.durMov2*fs);
+        tMov2 = linspace(0,durMov2,durMov2*fs);
         mov2 = square(2*pi*frequency*tMov2);
 
         %% Concatenate and spatialize
@@ -340,8 +333,8 @@ if whichBlock ~= 3
         end
 
         filename = strcat(wavDir, '-', temp, num2str(stimNo));
-        outCsv(stimNo+1, :) = {filename, frequency, durations.durStatStart, durations.durMov1, durations.durStatMiddle, ...
-            durations.durMov2, durations.durStatEnd, totalDur, rMov1(1), ...
+        outCsv(stimNo+1, :) = {filename, frequency, durStatStart, durMov1, durStatMiddle, ...
+            durMov2, durStatEnd, totalDur, rMov1(1), ...
             rMov1(2),rMov2(1),rMov2(2), startSpaceMov1, stopSpaceMov1, startSpaceMov2,...
             stopSpaceMov2, trajectory};
         audiowrite(strcat('./', wavDir, '/', filename, '.wav'), stim, fs);
@@ -377,25 +370,20 @@ elseif whichBlock == 3 % Azimuth block
         % Moving portion: 1000-2000 ms, with round 100 ms values, in secs
         durMov1 = (randi(10,1)+10)/10;
 
-        durations = struct( ...
-            'durStatStart',durStatStart, ...
-            'durMov1',durMov1, ...
-            'durStatEnd', durStatEnd);
-
         totalDur = durStatStart+durMov1+durStatEnd; % in s
 
         %% Generate square waves and intensity ramps for each portion
 
         % Generate square waves for stationary portions
-        tStatStart = linspace(0,durations.durStatStart,durations.durStatStart*fs);
+        tStatStart = linspace(0,durStatStart,durStatStart*fs);
         statStart = square(2*pi*frequency*tStatStart);
 
-        tStatEnd = linspace(0,durations.durStatEnd,durations.durStatEnd*fs);
+        tStatEnd = linspace(0,durStatEnd,durStatEnd*fs);
         statEnd  = square(2*pi*frequency*tStatEnd);
 
         %
         % Generate square waves for moving portions
-        tMov1 = linspace(0,durations.durMov1,durations.durMov1*fs);
+        tMov1 = linspace(0,durMov1,durMov1*fs);
         mov1 = square(2*pi*frequency*tMov1);
 
         %% Concatenate and spatialize
@@ -422,8 +410,8 @@ elseif whichBlock == 3 % Azimuth block
         end
 
         filename = strcat(wavDir, '-', temp, num2str(stimNo));
-        outCsv(stimNo+1, :) = {filename, frequency, durations.durStatStart, durations.durMov1, ...
-            durations.durStatEnd, totalDur, rBlock3(stimNo), whichSpace, trajectory};
+        outCsv(stimNo+1, :) = {filename, frequency, durStatStart, durMov1, ...
+            durStatEnd, totalDur, rBlock3(stimNo), whichSpace, trajectory};
         audiowrite(strcat('./', wavDir, '/', filename, '.wav'), stim, fs);
 
     end % stimulus generation loop for block 3
