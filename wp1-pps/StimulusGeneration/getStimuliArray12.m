@@ -26,9 +26,9 @@ function stimArray = getStimuliArray12(folders)
 
 %% Input check
 
-% folders = {'25-Nov-2024-1435','25-Nov-2024-1435_1'}; % block 1
-% folders = {'25-Nov-2024-1436','25-Nov-2024-1436_1','25-Nov-2024-1437','25-Nov-2024-1437_1'}; % block 2
-% folders = {'15-Nov-2024-926','15-Nov-2024-927'}; % familiarization
+% folders = {'26-Nov-2024-1558','26-Nov-2024-1558_1'}; % block 1
+% folders = {'26-Nov-2024-1559','26-Nov-2024-1559_1','26-Nov-2024-1559_2','26-Nov-2024-160'}; % block 2
+% folders = {'26-Nov-2024-162','26-Nov-2024-162_1'}; % familiarization
 
 % if input is string, put it into cell
 if ischar(folders)
