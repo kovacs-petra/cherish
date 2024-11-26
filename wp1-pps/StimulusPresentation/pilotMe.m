@@ -308,7 +308,9 @@ disp([char(10), 'Subject signalled she/he is ready, we go ahead with the task'])
 
 %% Blocks loop
 
-SPL = -40; % changes in the next block; values: SPL + [0 5 10]
+SPLoptions = [-40 -30 -25 -40];
+SPLidx = 1; % changes in the next block
+SPL = SPLoptions(SPLidx);
 
 % start from the block specified by the parameters/settings parts
 for block = startBlockNo:noBlocks
@@ -347,9 +349,16 @@ for block = startBlockNo:noBlocks
         ', showing block start message']);
 
     % block starting text
-    blockStartText = ['Beginning block ', num2str(block), '. \n\n',...
-        'As always in this round, there will be ', num2str(length(trialList)), ' trials in the block.\n\n\n',...
-        'Press SPACE to begin!'];
+    if block == 1
+        blockStartText = ['Beginning block ', num2str(block), '. \n\n',...
+            'As always in this round, there will be ', num2str(length(trialList)), ' trials in the block.\n\n\n',...
+            'Press SPACE to begin!'];
+    else
+        blockStartText = ['Beginning block ', num2str(block), '. \n\n',...
+            'All sounds will be louder than before! \n\n',...
+            'As always in this round, there will be ', num2str(length(trialList)), ' trials in the block.\n\n\n',...
+            'Press SPACE to begin!'];
+    end
 
     % uniform background
     Screen('FillRect', win, backGroundColor);
@@ -778,7 +787,8 @@ for block = startBlockNo:noBlocks
 
     end  % if block
 
-    SPL = SPL + 5;
+    SPLidx = SPLidx+1; % changes in the next block
+    SPL = SPLoptions(SPLidx);
     disp([char(10), 'SPL is set to ', num2str(SPL)]);
 
 end  % block for loop
