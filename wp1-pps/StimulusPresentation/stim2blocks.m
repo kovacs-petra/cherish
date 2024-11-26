@@ -64,7 +64,7 @@ disp([char(10), 'Called stim2blocks with input args: ',...
 if bigBlock < 3
     stimFeaturesNo = 18;
 else
-    stimFeaturesNo = 12;
+    stimFeaturesNo = 10;
 end
 % header for final stimTypes cell array (see the last code block)
 stimTypesHdr = {'space', 'trajectory','stimTypeIdx'};
@@ -99,8 +99,8 @@ if bigBlock < 3
     space = cell2mat(stimArray(:, 16));
     trajectory = cell2mat(stimArray(:, 17));
 else
-    space = cell2mat(stimArray(:, 10));
-    trajectory = cell2mat(stimArray(:, 11));
+    space = cell2mat(stimArray(:, 8));
+    trajectory = cell2mat(stimArray(:, 9));
 end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 

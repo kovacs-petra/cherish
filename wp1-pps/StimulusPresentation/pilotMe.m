@@ -50,8 +50,9 @@ disp([char(10), 'Ready to start the experiment']);
 %% Stimulus features for triggers + logging
 endSpace = cell2mat(logVar(2:end, strcmp(logHeader, 'space')));
 trajectory = cell2mat(logVar(2:end, strcmp(logHeader, 'trajectory')));
-stimLength = cell2mat(logVar(2:end, strcmp(logHeader, 'totalDur')));
-lastPortionLength = cell2mat(stimArray(:,7)); % required for defining response interval
+totalDur = cell2mat(logVar(2:end, strcmp(logHeader, 'totalDur')));
+lastPortionDur = cell2mat(stimArray(:,7)); % required for defining response interval
+durStatStart = cell2mat(logVar(2:end, strcmp(logHeader, 'durStatStart')));
 
 % user message
 disp([char(10), 'Extracted stimulus features']);
@@ -82,7 +83,7 @@ stimTypes = [stimTypes, [{'trigger'}; num2cell(trigTypes)]];
 if bigBlock < 3
     trig.stimType = cell2mat(stimArray(:, 19))+150;
 else
-    trig.stimType = cell2mat(stimArray(:, 13))+150;
+    trig.stimType = cell2mat(stimArray(:, 11))+150;
 end
 
 % add triggers to logging / results variable
@@ -307,7 +308,7 @@ disp([char(10), 'Subject signalled she/he is ready, we go ahead with the task'])
 
 %% Blocks loop
 
-SPL = -30; % changes in the next block; values: SPL + [0 3 6]
+SPL = -40; % changes in the next block; values: SPL + [0 5 10]
 
 % start from the block specified by the parameters/settings parts
 for block = startBlockNo:noBlocks
@@ -331,7 +332,7 @@ for block = startBlockNo:noBlocks
             audioData = 10^(SPL/20)*audioData;
             buffer(end+1) = PsychPortAudio('CreateBuffer', [], audioData');
         else
-            audioData = stimArray{trial, 12};
+            audioData = stimArray{trial, 10};
             % Intensity roving:
             audioData = 10^(SPL/20)*audioData;
             buffer(end+1) = PsychPortAudio('CreateBuffer', [], audioData');
@@ -456,7 +457,7 @@ for block = startBlockNo:noBlocks
         % Wait for response 1 (when did the movement stop?)
         respFlag1 = 0;
         
-        while GetSecs <= startTime+stimLength(trial)+respInt1
+        while GetSecs <= startTime+totalDur(trial)+respInt1
             [keyIsDown, respSecs, keyCode] = KbCheck;
             if keyIsDown
                 % if subject responded to movement stop (blocks 1-2)
@@ -481,10 +482,12 @@ for block = startBlockNo:noBlocks
                             respFlag1 = 1;
                             accDirection(trial) = 1;
                             respDirection(trial) = 1;
+                            break
                         elseif find(keyCode) == keys.respRight
                             respFlag1 = 1;
                             accDirection(trial) = 0;
                             respDirection(trial) = 2;
+                            break
                         elseif find(keyCode) == keys.abort
                             abortFlag = 1;
                             break;
@@ -494,10 +497,12 @@ for block = startBlockNo:noBlocks
                             respFlag1 = 1;
                             accDirection(trial) = 0;
                             respDirection(trial) = 1;
+                            break
                         elseif find(keyCode) == keys.respRight
                             respFlag1 = 1;
                             accDirection(trial) = 1;
                             respDirection(trial) = 2;
+                            break
                         elseif find(keyCode) == keys.abort
                             abortFlag = 1;
                             break;
@@ -522,11 +527,15 @@ for block = startBlockNo:noBlocks
         end
 
         % switch visual right when the audio finishes
-        respStart = Screen('Flip', win, startTime+stimLength(trial)-0.5*ifi);
+        respStart = Screen('Flip', win, startTime+totalDur(trial)-0.5*ifi);
         
         % response time into results variable
         if respFlag1
-            respTime(trial) = 1000*(respSecs-respStart-lastPortionLength(trial)); 
+            if bigBlock < 3
+                respTime(trial) = 1000*(respSecs-(startTime+totalDur(trial)-lastPortionDur(trial)));
+            elseif bigBlock == 3
+                respTime(trial) = 1000*(respSecs-(startTime+durStatStart(trial))); 
+            end
         end
 
         % user messages
@@ -545,12 +554,12 @@ for block = startBlockNo:noBlocks
 
         % user message
         disp(['Visual flip for response period start was ', num2str(respStart-startTime),...
-            ' secs after audio start (should equal ', num2str(stimLength(trial)), ')']);
+            ' secs after audio start (should equal ', num2str(totalDur(trial)), ')']);
 
         % Wait for response 2 (how far was the sound at the end point?)
         respFlag2 = 0;
         % while GetSecs <= startTime+stimLength(trial)+respInt2
-        while GetSecs-(startTime+stimLength(trial)) <= respInt2
+        while GetSecs-(startTime+totalDur(trial)) <= respInt2
             [keyIsDown, respSecs, keyCode] = KbCheck;
             if keyIsDown
                 % if subject responded to distance
@@ -769,7 +778,7 @@ for block = startBlockNo:noBlocks
 
     end  % if block
 
-    SPL = SPL + 3;
+    SPL = SPL + 5;
     disp([char(10), 'SPL is set to ', num2str(SPL)]);
 
 end  % block for loop
