@@ -107,7 +107,8 @@ oldParamsMatchFlag = 0;
 logFileFlag = 0;
 % log header - needed for sanity check as well
 logHeader = {'subNum', 'blockNo', 'bigBlock', 'trialNo', ... 
-    'lastDistance', 'space', 'trajectory', 'SPL', 'totalDur', 'accDistance', 'accDirection', 'respTime', ...
+    'lastDistance', 'space', 'trajectory', 'SPL', 'totalDur', 'durStatStart',...
+    'accDistance', 'accDirection', 'respTime', ...
     'respSpace', 'respDirection','trigger'};
 
 % check if subject folder already exists
@@ -247,7 +248,7 @@ disp([char(10), 'Loaded stimuli and saved out parameters/settings into params fi
 if bigBlock < 3
     cols = 18;
 else 
-    cols = 12;
+    cols = 10;
 end
 
 if ~isequal(size(stimArray), [length(trialIdx), cols])
@@ -284,13 +285,14 @@ if ~logFileFlag
         logVar(2:end, strcmp(logHeader, 'totalDur')) = stimArray(:, 8); % stimulus length
     else
         logVar(2:end, strcmp(logHeader, 'subNum')) = num2cell(repmat(subNum, [size(stimArray, 1), 1]));  % subNum
-        logVar(2:end, strcmp(logHeader, 'blockNo')) = stimArray(:, 14);
+        logVar(2:end, strcmp(logHeader, 'blockNo')) = stimArray(:, 12);
         logVar(2:end, strcmp(logHeader, 'bigBlock')) = num2cell(bigBlock); 
-        logVar(2:end, strcmp(logHeader, 'trialNo')) = stimArray(:, 15);  % trialNo
-        logVar(2:end, strcmp(logHeader, 'lastDistance')) = stimArray(:, 9); % distance in m
-        logVar(2:end, strcmp(logHeader, 'space')) = stimArray(:, 10);  % space category of stim
-        logVar(2:end, strcmp(logHeader, 'trajectory')) = stimArray(:, 11);  % trajectory (e.g. loom-rec)
-        logVar(2:end, strcmp(logHeader, 'totalDur')) = stimArray(:, 8); % stimulus length
+        logVar(2:end, strcmp(logHeader, 'trialNo')) = stimArray(:, 13);  % trialNo
+        logVar(2:end, strcmp(logHeader, 'lastDistance')) = stimArray(:, 7); % distance in m
+        logVar(2:end, strcmp(logHeader, 'space')) = stimArray(:, 8);  % space category of stim
+        logVar(2:end, strcmp(logHeader, 'trajectory')) = stimArray(:, 9);  % trajectory (e.g. left)
+        logVar(2:end, strcmp(logHeader, 'totalDur')) = stimArray(:, 6); % stimulus length
+        logVar(2:end, strcmp(logHeader, 'durStatStart')) = stimArray(:, 3); % duration of first static portion (for RT calculation)
     end
 end
 
