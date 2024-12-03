@@ -62,12 +62,12 @@ disp([char(10), 'Called stim2blocks with input args: ',...
 %%%%%% HARD-CODED VALUES %%%%%
 % number of expected cell columns for the stimuli array
 if bigBlock < 3
-    stimFeaturesNo = 18;
+    stimFeaturesNo = 19;
 else
-    stimFeaturesNo = 10;
+    stimFeaturesNo = 11;
 end
 % header for final stimTypes cell array (see the last code block)
-stimTypesHdr = {'space', 'trajectory','stimTypeIdx'};
+stimTypesHdr = {'space', 'trajectory','target','stimTypeIdx'};
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % load stimuli
@@ -88,7 +88,6 @@ end
 disp([char(10), 'Loaded stimuli array, found ', num2str(trialNo), ' trials, ',...
     char(10), 'each block will contain ', num2str(trialNo/noBlocks), ' trials']);
 
-
 %% Get unique stimulus types
 
 % get number of unique stimulus types based on figure presence/absence, 
@@ -98,20 +97,21 @@ disp([char(10), 'Loaded stimuli array, found ', num2str(trialNo), ' trials, ',..
 if bigBlock < 3
     space = cell2mat(stimArray(:, 16));
     trajectory = cell2mat(stimArray(:, 17));
+    target = cell2mat(stimArray(:,18));
 else
     space = cell2mat(stimArray(:, 8));
     trajectory = cell2mat(stimArray(:, 9));
+    target = cell2mat(stimArray(:,10));
 end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % unique combinations
-[stimTypes, ~, stimTypeIdx] = unique([space, trajectory], 'rows');
+[stimTypes, ~, stimTypeIdx] = unique([space, trajectory, target], 'rows');
 
 % user message
 disp([char(10), 'There are ', num2str(size(stimTypes, 1)),... 
     ' different trial types  in the stimuli array ',... 
-    char(10), '(in terms of figure presence/absence, ',...
-    'duration and coherence).'])
+    char(10), '(in terms of space, trajectory, and target presence)']);
 
 % check how many of each unique types we have
 stimTypesNumbers = nan(size(stimTypes, 1), 1);
@@ -122,18 +122,18 @@ end
 % if there are different numbers for trial types, that is a problem, throw
 % error, otherwise report the number per type and per type per block
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% if length(unique(stimTypesNumbers)) ~= 1
-%     disp([char(10), 'Stimulus types in terms of duration, coherence and figure presence:']);
-%     disp(stimTypes);
-%     disp('Number of trials per stimulus type:');
-%     disp(stimTypesNumbers);
-%     error('There are different numbers of trials for different trial types!');
-% else
+if length(unique(stimTypesNumbers)) ~= 1
+    disp([char(10), 'Stimulus types in terms of space, trajectory and target:']);
+    disp(stimTypes);
+    disp('Number of trials per stimulus type:');
+    disp(stimTypesNumbers);
+    error('There are different numbers of trials for different trial types!');
+else
     stimNoPerType = unique(stimTypesNumbers);
     stimNoPerTypePerBlock = unique(stimTypesNumbers)/noBlocks;
     disp([char(10), 'There are ', num2str(stimNoPerType), ' trials for each trial type, ',...
         char(10), 'corresponding to ', num2str(stimNoPerTypePerBlock), ' trials for each type per block']);
-% end
+end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% Sort stimuli into blocks

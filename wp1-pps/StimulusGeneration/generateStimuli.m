@@ -3,24 +3,29 @@ function generateStimuli(nBuildingBlocks,whichBlock,trajectory)
 % Address complaints to: Petra Kovacs
 
 % Inputs:
-%% trajectory
-% trajectory = 1; % loom-rec (block 1-2) // 0 to 30 deg i.e. left (block 3)
-% trajectory = 2; % rec-loom (block 1-2) // 0 to -30 deg i.e. right (block 3)
-% trajectory = 3; % loom-loom (block 2)
-% trajectory = 4; % rec-rec (block 2)
-
-%% no. of stimuli in each distance x direction pair (termed a bulding block):
+%% nBuildingBlocks: no. of stimuli in each distance x direction pair:
 % Note that the total no. of stimuli per block will be 18*nBuildingBlocks in block 1 and
-% 36*nStimuli in block 2. % See also nStimuli.xlsx for an illustration.
-% nBuildingBlocks = 1;
+% 36*nBuildingBlocks in block 2. See also nStimuli.xlsx for an illustration.
 stimuliPerTrajectory = nBuildingBlocks*9;
 
-%% block (1:3):
+% Sanity check: nBuildingBlocks has to be an even no. so that half of the
+% trials can have a target
+if mod(nBuildingBlocks,2) ~= 0
+    error('nBuildingBlocks has to be an even number');
+end
+
+%% whichBlock (1:3):
 % Big block (task block)
-% 1 - loom-rec and rec-loom stimuoli only
+% 1 - loom-rec and rec-loom stimuli only
 % 2 - besides the conditions in 1, there's also loom-loom and rec-rec
 % conditions
 % 3 - sound is fixed in distance, moves left or right
+
+%% trajectory
+% 1 - loom-rec (block 1-2) // 0 to 30 deg i.e. left (block 3)
+% 2 - rec-loom (block 1-2) // 0 to -30 deg i.e. right (block 3)
+% 3 - loom-loom (block 2)
+% 4 - rec-rec (block 2)
 
 %% Parameters and to-do independent of block number
 ele = [0 0]; % elevation is always 0
@@ -78,7 +83,8 @@ if whichBlock ~= 3
         'stopSpaceMov1',...
         'startSpaceMov2',...
         'stopSpaceMov2',...
-        'trajectory'            % Space data - direction (loom,rec)
+        'trajectory',...        % Space data - direction (loom,rec)
+        'target'                % Target or nontarget trial
         };
 
     outCsv = cell(stimuliPerTrajectory+1,length(outFields));
@@ -94,7 +100,7 @@ else
         'totalDur',...
         'distance',...     % Space data - distance in m
         'whichSpace',...   % Space data - space category (PPS,ARS,EPS)
-        'trajectory'       % Space data - direction (0-30deg or umgekehrt)
+        'trajectory'       % Space data - direction (0-30 deg or umgekehrt)
         };
 
     outCsv = cell(stimuliPerTrajectory+1,length(outFields));
@@ -116,9 +122,33 @@ if whichBlock ~= 3
                 repmat(EPS(2),1,nBuildingBlocks),...
                 repmat(EPS(3),1,nBuildingBlocks),...
                 ];
-            y = zeros(1,length(z));
-            x = zeros(1,length(z));
 
+            % Allocate target and nontarget trials:
+            % Half of the unique end distances in z have to be target, half nontarget
+            % Follow the logic of variable z, but alternate 0s and 1s at half the
+            % frequency
+            target = [...
+                ones(1,nBuildingBlocks/2),...   % PPS(2) - 1st half of trials
+                zeros(1,nBuildingBlocks/2),...  % PPS(2) - 2nd half of trials
+                ones(1,nBuildingBlocks),...     % PPS(3)
+                zeros(1,nBuildingBlocks),...    % PPS(3)
+                ones(1,nBuildingBlocks/2),...   % ARS(1)
+                zeros(1,nBuildingBlocks/2),...  % ARS(1)
+                ones(1,nBuildingBlocks/2),...   % ARS(2)
+                zeros(1,nBuildingBlocks/2),...  % ARS(2)
+                ones(1,nBuildingBlocks/2),...   % ARS(3)
+                zeros(1,nBuildingBlocks/2),...  % ARS(3)
+                ones(1,nBuildingBlocks/2),...   % EPS(1)
+                zeros(1,nBuildingBlocks/2),...  % EPS(1)
+                ones(1,nBuildingBlocks/2),...   % EPS(2)
+                zeros(1,nBuildingBlocks/2),...  % EPS(2)
+                ones(1,nBuildingBlocks/2),...   % EPS(3)
+                zeros(1,nBuildingBlocks/2)...   % EPS(3)
+                ];
+
+            % x and y coordinates:
+            y = zeros(1,length(z)); % has to be smaller than z
+            x = zeros(1,length(z)); % has to be greater than y
             for i = 1: length(z)
                 possibleSpaceY = allSpace(allSpace < z(i));
                 idx = randi(length(possibleSpaceY),1);
@@ -142,6 +172,28 @@ if whichBlock ~= 3
                 repmat(EPS(1),1,2*nBuildingBlocks),...
                 repmat(EPS(2),1,nBuildingBlocks),...
                 ];
+
+            % Allocate target and nontarget trials:
+            target = [...
+                ones(1,nBuildingBlocks/2),...   % PPS(1) - 1st half of trials
+                zeros(1,nBuildingBlocks/2),...  % PPS(1) - 2nd half of trials
+                ones(1,nBuildingBlocks/2),...   % PPS(2)
+                zeros(1,nBuildingBlocks/2),...  % PPS(2)
+                ones(1,nBuildingBlocks/2),...   % PPS(3)
+                zeros(1,nBuildingBlocks/2),...  % PPS(3)
+                ones(1,nBuildingBlocks/2),...   % ARS(1)
+                zeros(1,nBuildingBlocks/2),...  % ARS(1)
+                ones(1,nBuildingBlocks/2),...   % ARS(2)
+                zeros(1,nBuildingBlocks/2),...  % ARS(2)
+                ones(1,nBuildingBlocks/2),...   % ARS(3)
+                zeros(1,nBuildingBlocks/2),...  % ARS(3)
+                ones(1,nBuildingBlocks),...     % EPS(1)
+                zeros(1,nBuildingBlocks),...    % EPS(1)
+                ones(1,nBuildingBlocks/2),...   % EPS(2)
+                zeros(1,nBuildingBlocks/2)...   % EPS(2)
+                ];
+
+            % x and y coordinates:
             y = zeros(1,length(z)); % has to be greater than z
             x = zeros(1,length(z)); % has to be smaller than y
 
@@ -167,6 +219,26 @@ if whichBlock ~= 3
                 repmat(ARS(3),1,nBuildingBlocks),...
                 repmat(EPS(1),1,3*nBuildingBlocks),...
                 ];
+
+             % Allocate target and nontarget trials:
+             target = [...
+                ones(1,nBuildingBlocks/2),...   % PPS(1) - 1st half of trials
+                zeros(1,nBuildingBlocks/2),...  % PPS(1) - 2nd half of trials
+                ones(1,nBuildingBlocks/2),...   % PPS(2)
+                zeros(1,nBuildingBlocks/2),...  % PPS(2)
+                ones(1,nBuildingBlocks/2),...   % PPS(3)
+                zeros(1,nBuildingBlocks/2),...  % PPS(3)
+                ones(1,nBuildingBlocks/2),...   % ARS(1)
+                zeros(1,nBuildingBlocks/2),...  % ARS(1)
+                ones(1,nBuildingBlocks/2),...   % ARS(2)
+                zeros(1,nBuildingBlocks/2),...  % ARS(2)
+                ones(1,nBuildingBlocks/2),...   % ARS(3)
+                zeros(1,nBuildingBlocks/2),...  % ARS(3)
+                ones(1,3*nBuildingBlocks/2),... % EPS(1)
+                zeros(1,3*nBuildingBlocks/2),...% EPS(1)
+                ];
+
+            % x and y coordinates:
             y = zeros(1,length(z));
             x = zeros(1,length(z));
 
@@ -193,6 +265,26 @@ if whichBlock ~= 3
                 repmat(EPS(2),1,nBuildingBlocks),...
                 repmat(EPS(3),1,nBuildingBlocks),...
                 ];
+
+            % Allocate target and nontarget trials:
+             target = [...
+                ones(1,3*nBuildingBlocks/2),... % PPS(3) - 1st half of trials
+                zeros(1,3*nBuildingBlocks/2),...% PPS(3) - 2nd half of trials
+                ones(1,nBuildingBlocks/2),...   % ARS(1)
+                zeros(1,nBuildingBlocks/2),...  % ARS(1)
+                ones(1,nBuildingBlocks/2),...   % ARS(2)
+                zeros(1,nBuildingBlocks/2),...  % ARS(2)
+                ones(1,nBuildingBlocks/2),...   % ARS(3)
+                zeros(1,nBuildingBlocks/2),...  % ARS(3)
+                ones(1,nBuildingBlocks/2),...   % EPS(1)
+                zeros(1,nBuildingBlocks/2),...  % EPS(1)
+                ones(1,nBuildingBlocks/2),...   % EPS(2)
+                zeros(1,nBuildingBlocks/2),...  % EPS(2)
+                ones(1,nBuildingBlocks/2),...   % EPS(3)
+                zeros(1,nBuildingBlocks/2),...  % EPS(3)
+                ];
+
+            % x and y coordinates: 
             y = zeros(1,length(z));
             x = zeros(1,length(z));
 
@@ -228,7 +320,7 @@ end % if not block 3
 
 %% Stimulus generation loop
 if whichBlock ~= 3
-    azi = [30 30]; % azi is fixed in the first two blocks
+    azi = repmat([-30 30],1,stimuliPerTrajectory/2);
 
     for stimNo = 1:stimuliPerTrajectory
         frequency = (randi(4,1)+4)*100; % 500-800 Hz with round 100 values
@@ -281,9 +373,9 @@ if whichBlock ~= 3
 
         %% Set durations
         % Static portions
-        durStatStart = (randi(6,1)+9)/10; % 1000-1500 ms with round 100 values
-        durStatMiddle = (randi(6,1)+9)/10;
-        durStatEnd = (randi(6,1)+14)/10; % 1500-2000 ms
+        durStatStart = (randi(4,1)+5)/10; % 600-900 ms with round 100 values
+        durStatMiddle = (randi(4,1)+5)/10;
+        durStatEnd = (randi(4,1)+5)/10;
 
         % Moving portions: duration calculated from distance and velocity
         durMov1 = abs(rMov1(2)-rMov1(1))/v;
@@ -319,7 +411,7 @@ if whichBlock ~= 3
         %% Concatenate and spatialize
         % intensityRampMain = [intensityRampStart intensityRampMov1 intensityRampMiddle intensityRampMov2 intensityRampEnd];
         allPortions = [statStart mov1 statMiddle mov2 statEnd];
-        [stim, ~, ~, rActual, ~] = local_SOFAspat(allPortions',Obj,azi,ele,rMain);
+        [stim, ~, ~, rActual, ~] = local_SOFAspat(allPortions',Obj,azi(stimNo),ele,rMain);
         
         totalDur = durMov1+durMov2+durStatStart+durStatMiddle+durStatEnd; % in s
 
@@ -336,7 +428,7 @@ if whichBlock ~= 3
         outCsv(stimNo+1, :) = {filename, frequency, durStatStart, durMov1, durStatMiddle, ...
             durMov2, durStatEnd, totalDur, rMov1(1), ...
             rMov1(2),rMov2(1),rMov2(2), startSpaceMov1, stopSpaceMov1, startSpaceMov2,...
-            stopSpaceMov2, trajectory};
+            stopSpaceMov2, trajectory, target(stimNo)};
         audiowrite(strcat('./', wavDir, '/', filename, '.wav'), stim, fs);
 
     end % for stimNo
@@ -363,13 +455,17 @@ elseif whichBlock == 3 % Azimuth block
         aziMain = [aziStatStart,aziMov1,aziStatEnd];
 
         %% Set durations
-        % Static portions: 800-1100 ms, with round 100 ms values, in secs
-        durStatStart = (randi(4,1)+7)/10;
-        durStatEnd = (randi(4,1)+7)/10;
+        % Static portions: 600-900 ms, with round 100 ms values, in secs
+        durStatStart = (randi(4,1)+5)/10;
+        durStatEnd = (randi(4,1)+5)/10;
 
-        % Moving portion: 1000-2000 ms, with round 100 ms values, in secs
-        durMov1 = (randi(10,1)+10)/10;
-
+        % % Moving portion: duration calculated from velocity
+        % % arcLength = r*phi where phi is radian
+        % % WARNING - duration is too short in this way
+        % arcLength = rBlock3(stimNo)*deg2rad(30);
+        % durMov1 = arcLength/v;
+        durMov1 = (randi(4,1)+5)/10;
+        
         totalDur = durStatStart+durMov1+durStatEnd; % in s
 
         %% Generate square waves and intensity ramps for each portion

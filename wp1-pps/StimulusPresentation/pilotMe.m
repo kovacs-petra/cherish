@@ -42,16 +42,49 @@ if returnFlag
     return
 end
 
+% Get sampling rate from the hrtf file that was used for stimulus
+% generation
+if not(exist("SOFAdbPath.m","file"))
+    sofaPath = '\\kfs\fileserver\ProjektDaten\CherISH\code\SOFAtoolbox\SOFAtoolbox';
+    addpath(sofaPath);
+    SOFAstart;
+end
+database = 'scut';
+HRTFfilename = 'SCUT_KEMAR_radius_all.sofa';
+fullfn = fullfile(SOFAdbPath, 'database', database, HRTFfilename);
+Obj = SOFAload(fullfn);
+fs = Obj.Data.SamplingRate;
+
 % user message
 disp([char(10), 'Ready to start the experiment']);
 
+% Generate target sound and target iti
+targetITI = 0.1; % 100 ms
+target = sin(2*pi*1200*[0:(1/fs):targetITI-1/fs]); % 100 ms, 1200 Hz
+gap = zeros(targetITI*fs,2);
 
+% Intensity: On-Off-ramp
+rampT_samples = round(fs*.01);                                   % Ramp in order to avoid startle respoce (> 12 ms)
+rampT = sin(linspace(0, pi/2, rampT_samples));                      % cosine ramp
+rampT_end = cos(linspace(0, pi/2, rampT_samples));                  % cosine ramp
+target(1:rampT_samples) = target(1:rampT_samples)'.*rampT';
+target((end-rampT_samples+1):end) = target((end-rampT_samples+1):end)'.*rampT_end';
+target = [target' target'];
+
+% Add gap and target to target trials, or gap and gap to nontarget trials
+for row = 1:length(stimArray)
+    if stimArray{row,18} == 1 % target trials
+        stimArray{row,19} = [stimArray{row,19};gap;target];
+    else % nontarget trials
+        stimArray{row,19} = [stimArray{row,19};gap;gap];
+    end
+end
 
 %% Stimulus features for triggers + logging
 endSpace = cell2mat(logVar(2:end, strcmp(logHeader, 'space')));
 trajectory = cell2mat(logVar(2:end, strcmp(logHeader, 'trajectory')));
-totalDur = cell2mat(logVar(2:end, strcmp(logHeader, 'totalDur')));
-lastPortionDur = cell2mat(stimArray(:,7)); % required for defining response interval
+totalDurStimulus = cell2mat(logVar(2:end, strcmp(logHeader, 'totalDur')));
+% lastPortionDur = cell2mat(stimArray(:,7)); % required for defining response interval
 durStatStart = cell2mat(logVar(2:end, strcmp(logHeader, 'durStatStart')));
 
 % user message
@@ -81,9 +114,9 @@ stimTypes = [stimTypes, [{'trigger'}; num2cell(trigTypes)]];
 
 % create triggers for stimulus types, for all trials
 if bigBlock < 3
-    trig.stimType = cell2mat(stimArray(:, 19))+150;
+    trig.stimType = cell2mat(stimArray(:, 20))+150;
 else
-    trig.stimType = cell2mat(stimArray(:, 11))+150;
+    trig.stimType = cell2mat(stimArray(:, 12))+150;
 end
 
 % add triggers to logging / results variable
@@ -101,9 +134,6 @@ PsychDefaultSetup(1);
 % init PsychPortAudio with pushing for lowest possible latency
 InitializePsychSound(1);
 %% Audio parameters for PsychPortAudio
-
-% sampling rate is derived from the HRTF set, 44100 Hz in this case
-fs = 44100;
 
 % Select audio device: this is where I could use o_ptb
 % device = [];  % system default is our default as well
@@ -129,7 +159,7 @@ disp([char(10), 'Set audio parameters']);
 keys = struct;
 keys.abort = KbName('ESCAPE');
 keys.go = KbName('SPACE');
-keys.respStop = KbName('RETURN');
+keys.respTarget = KbName('RETURN');
 keys.respDistancePPS = KbName('1');
 keys.respDistanceARS = KbName('2');
 keys.respDistanceEPS = KbName('3');
@@ -201,15 +231,19 @@ PsychPortAudio('Stop', pahandle, 1);  % stop when playback is over
 iti = (randi(4, [size(stimArray, 1) 1])+4)/10;  % in secs
 
 % response time interval
-respInt1 = 5; 
-respInt2 = 20; 
+respInt1 = 1; 
+respInt2 = 10; 
 
 % response variables preallocation
 respTime = nan(size(stimArray, 1), 1);
-accDistance = respTime;
-accDirection = respTime;
-respDistance = respTime;
-respDirection = respTime;
+
+if bigBlock < 3
+    accDistance = respTime;
+    respDistance = respTime;
+else
+    accDirection = respTime;
+    respDirection = respTime;
+end
 
 % set flag for aborting experiment
 abortFlag = 0;
@@ -245,9 +279,8 @@ disp([char(10), 'Initialized psychtoolbox basics, opened window, ',...
 % instructions text
 if bigBlock < 3
     instrText = ['Now you will hear pairs of sounds, each moving either closer to you \n',...
-        'or farther. In the beginning, middle and end, the sound stops for a few moments. \n\n',...
-        'Detect when the sound stopped for the LAST time: press ENTER at the end \n',...
-        'of the second movement. \n\n',...
+        'or farther. After some of these sounds, you will sometimes hear a brief target sound. \n\n',...
+        'Detect the target sound as quickly and accurately as possible: press ENTER if you heard it. \n',...        
         'Then, you will have more time to answer how far the sound stopped from you: \n',...
         '1: uncomfortably close to my face \n',...
         '2: not extremely close, but still within arm''s reach \n',...
@@ -255,7 +288,7 @@ if bigBlock < 3
         'Press SPACE to continue.'];
 else
     instrText = ['Now you will hear sounds moving either to the left or to the right. \n',...
-        'Detect as fast and accurately as possible which way the sound moved: \n',...
+        'Detect as quickly and accurately as possible which way the sound moved: \n',...
         'press LEFT arrow or RIGHT arrow. \n\n',...
         'Then, you will have more time to answer how far the sound was from you: \n',...
         '1: uncomfortably close to my face \n',...
@@ -329,12 +362,12 @@ for block = startBlockNo:noBlocks
     buffer = [];
     for trial = min(trialList):max(trialList)
         if bigBlock < 3
-            audioData = stimArray{trial, 18};
+            audioData = stimArray{trial, 19};
             % Intensity roving:
             audioData = 10^(SPL/20)*audioData;
             buffer(end+1) = PsychPortAudio('CreateBuffer', [], audioData');
         else
-            audioData = stimArray{trial, 10};
+            audioData = stimArray{trial, 11};
             % Intensity roving:
             audioData = 10^(SPL/20)*audioData;
             buffer(end+1) = PsychPortAudio('CreateBuffer', [], audioData');
@@ -416,6 +449,10 @@ for block = startBlockNo:noBlocks
         % relative trial number (trial in given block)
         trialCounterForBlock = trialCounterForBlock+1;
 
+        % Total duration is a trial became 200 ms longer when adding the
+        % target, correct it
+        totalDurWithTarget(trial) = totalDurStimulus(trial)+0.2;
+
         % background with fixation cross, get trial start timestamp
         Screen('CopyWindow', fixCrossWin, win);
         Screen('DrawingFinished', win);
@@ -460,18 +497,15 @@ for block = startBlockNo:noBlocks
         disp(['Audio started at ', num2str(startTime-trialStart), ' secs after trial start']);
         disp(['(Target ITI was ', num2str(iti(trial)), ' secs)']);
 
-        % % prepare screen change for response period
-        % Screen('CopyWindow', qMarkWin, win);
-        % Screen('DrawingFinished', win);
-        % Wait for response 1 (when did the movement stop?)
+        % Wait for response 1 (target detection)
         respFlag1 = 0;
         
-        while GetSecs <= startTime+totalDur(trial)+respInt1
+        while GetSecs <= startTime+totalDurStimulus(trial)+respInt1
             [keyIsDown, respSecs, keyCode] = KbCheck;
             if keyIsDown
-                % if subject responded to movement stop (blocks 1-2)
+                % if subject responded to target (blocks 1-2)
                 if bigBlock < 3
-                    if find(keyCode) == keys.respStop
+                    if find(keyCode) == keys.respTarget
                         respFlag1 = 1;
                         % response trigger
                         if triggers
@@ -536,20 +570,24 @@ for block = startBlockNo:noBlocks
         end
 
         % switch visual right when the audio finishes
-        respStart = Screen('Flip', win, startTime+totalDur(trial)-0.5*ifi);
+        respStart = Screen('Flip', win, startTime+totalDurWithTarget(trial)-0.5*ifi);
         
         % response time into results variable
         if respFlag1
             if bigBlock < 3
-                respTime(trial) = 1000*(respSecs-(startTime+totalDur(trial)-lastPortionDur(trial)));
+                respTime(trial) = 1000*(respSecs-(startTime+totalDurStimulus(trial)));
             elseif bigBlock == 3
                 respTime(trial) = 1000*(respSecs-(startTime+durStatStart(trial))); 
             end
         end
 
         % user messages
-        if isnan(respTime(trial))
-            disp('Subject did not respond in time');
+        if cell2mat(stimArray(trial,18)) == 1 % if it's a target trial
+            if isnan(respTime(trial))
+                disp('Subject did not respond in time');
+            else
+                disp(['RT: ', num2str(respTime(trial))]);
+            end
         end
 
         distanceText = ['Distance? \n\n 1: uncomfortably close to my face \n',...
@@ -563,12 +601,11 @@ for block = startBlockNo:noBlocks
 
         % user message
         disp(['Visual flip for response period start was ', num2str(respStart-startTime),...
-            ' secs after audio start (should equal ', num2str(totalDur(trial)), ')']);
+            ' secs after audio start (should equal ', num2str(totalDurWithTarget(trial)), ')']);
 
         % Wait for response 2 (how far was the sound at the end point?)
         respFlag2 = 0;
-        % while GetSecs <= startTime+stimLength(trial)+respInt2
-        while GetSecs-(startTime+totalDur(trial)) <= respInt2
+        while GetSecs-(startTime+totalDurWithTarget(trial)) <= respInt2
             [keyIsDown, respSecs, keyCode] = KbCheck;
             if keyIsDown
                 % if subject responded to distance
@@ -651,17 +688,24 @@ for block = startBlockNo:noBlocks
             end
         end
        
-        % cumulative accuracy in block
+        % Cumulative accuracy and RT in block
         blockAcc = sum(accDistance(trial-trialCounterForBlock+1:trial), 'omitnan')/trialCounterForBlock*100;
         disp(['Overall accuracy in block so far is ', num2str(blockAcc), '%']);
+        blockRT = mean(respTime(trial-trialCounterForBlock+1:trial),'omitnan');
+        disp(['Average RT in block so far is ', num2str(blockRT), ' ms']);
 
         % accumulating all results in logging / results variable
         logVar(trial+1,strcmp(logHeader, 'SPL')) = {SPL};
-        logVar(trial+1,strcmp(logHeader, 'accDistance')) = {accDistance(trial)};
-        logVar(trial+1,strcmp(logHeader, 'accDirection')) = {accDirection(trial)};
         logVar(trial+1,strcmp(logHeader, 'respTime')) = {respTime(trial)};
-        logVar(trial+1,strcmp(logHeader, 'respSpace')) = {respDistance(trial)};
-        logVar(trial+1,strcmp(logHeader, 'respDirection')) = {respDirection(trial)};
+        logVar(trial+1,strcmp(logHeader, 'target')) = {stimArray(trial,18)};
+
+        if bigBlock < 3
+            logVar(trial+1,strcmp(logHeader, 'accDistance')) = {accDistance(trial)};
+            logVar(trial+1,strcmp(logHeader, 'respSpace')) = {respDistance(trial)};
+        else
+            logVar(trial+1,strcmp(logHeader, 'accDirection')) = {accDirection(trial)};
+            logVar(trial+1,strcmp(logHeader, 'respDirection')) = {respDirection(trial)};
+        end
         
         % logVar(trial+1, 10:end-1) = {acc(trial), ...
         %     respTime(trial), iti(trial),...
@@ -684,7 +728,8 @@ for block = startBlockNo:noBlocks
 
         % block ending text
         blockEndText = ['End of block ', num2str(block), '! \n\n\n',...
-            'In this block, you had ', num2str(round(blockAcc, 2)), '% correct responses regarding distance.\n\n\n',...
+            'In this block, you had ', num2str(round(blockAcc, 2)), '% correct responses regarding distance.\n',...
+            'Your average reaction time was ',num2str(round(blockRT, 2)), ' ms. \n\n\n',...
             'Press SPACE to begin next block!'];
         % uniform background
         Screen('FillRect', win, backGroundColor);

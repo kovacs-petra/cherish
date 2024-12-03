@@ -26,7 +26,7 @@ function stimArray = getStimuliArray12(folders)
 
 %% Input check
 
-% folders = {'26-Nov-2024-1558','26-Nov-2024-1558_1'}; % block 1
+% folders = {'29-Nov-2024-1654','29-Nov-2024-1654_1'}; % block 1
 % folders = {'26-Nov-2024-1559','26-Nov-2024-1559_1','26-Nov-2024-1559_2','26-Nov-2024-160'}; % block 2
 % folders = {'26-Nov-2024-162','26-Nov-2024-162_1'}; % familiarization
 
@@ -59,7 +59,7 @@ end
 % fields we expect in params files
 paramFields = {'filename','frequency','durStatStart','durMov1','durStatMiddle','durMov2','durStatEnd','totalDur',...
               'startDistMov1','stopDistMov1','startDistMov2','stopDistMov2','startSpaceMov1',...
-              'stopSpaceMov1','startSpaceMov2','stopSpaceMov2','trajectory'};
+              'stopSpaceMov1','startSpaceMov2','stopSpaceMov2','trajectory', 'target'};
 
 % output variable collecting stimuli sets
 stimArray = cell(length(folders), 1);
@@ -112,7 +112,7 @@ stimArray = vertcat(stimArray{:});
 
 %% Ending
 %%%%%%%% HARD-CODED NAME %%%%%%%%%%%
-save('stimArrayBlock2.mat',"stimArray");
+save('stimArrayBlock1.mat',"stimArray");
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 disp([char(10), 'Finished, returning']);
 

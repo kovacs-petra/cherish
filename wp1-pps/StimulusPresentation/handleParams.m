@@ -107,9 +107,9 @@ oldParamsMatchFlag = 0;
 logFileFlag = 0;
 % log header - needed for sanity check as well
 logHeader = {'subNum', 'blockNo', 'bigBlock', 'trialNo', ... 
-    'lastDistance', 'space', 'trajectory', 'SPL', 'totalDur', 'durStatStart',...
-    'accDistance', 'accDirection', 'respTime', ...
-    'respSpace', 'respDirection','trigger'};
+    'lastDistance', 'space', 'trajectory', 'SPL', 'totalDur', ...
+    'durStatStart','accDistance', 'accDirection', 'respTime', ...
+    'target','respSpace', 'respDirection','trigger'};
 
 % check if subject folder already exists
 if exist(dirN, 'dir')
@@ -246,9 +246,9 @@ disp([char(10), 'Loaded stimuli and saved out parameters/settings into params fi
 % attach stimulus type indices, block and trial indices to stimulus
 % array - but first a quick sanity check of stimArray size
 if bigBlock < 3
-    cols = 18;
+    cols = 19;
 else 
-    cols = 10;
+    cols = 11;
 end
 
 if ~isequal(size(stimArray), [length(trialIdx), cols])
