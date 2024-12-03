@@ -42,6 +42,17 @@ if returnFlag
     return
 end
 
+% Collect column numbers from the resulting stimArray
+if bigBlock < 3
+    targetColumn = 19;
+    audioColumn = 20;
+    stimTypeColumn = 12;
+else
+    targetColumn = 18;
+    audioColumn = 19;
+    stimTypeColumn = 11;
+end
+
 % Get sampling rate from the hrtf file that was used for stimulus
 % generation
 if not(exist("SOFAdbPath.m","file"))
@@ -73,10 +84,10 @@ target = [target' target'];
 
 % Add gap and target to target trials, or gap and gap to nontarget trials
 for row = 1:length(stimArray)
-    if stimArray{row,18} == 1 % target trials
-        stimArray{row,19} = [stimArray{row,19};gap;target];
+    if stimArray{row,targetColumn} == 1 % target trials
+        stimArray{row,audioColumn} = [stimArray{row,audioColumn};gap;target];
     else % nontarget trials
-        stimArray{row,19} = [stimArray{row,19};gap;gap];
+        stimArray{row,audioColumn} = [stimArray{row,audioColumn};gap;gap];
     end
 end
 
@@ -84,6 +95,7 @@ end
 endSpace = cell2mat(logVar(2:end, strcmp(logHeader, 'space')));
 trajectory = cell2mat(logVar(2:end, strcmp(logHeader, 'trajectory')));
 totalDurStimulus = cell2mat(logVar(2:end, strcmp(logHeader, 'totalDur')));
+totalDurWithTarget = zeros(length(totalDurStimulus),1);
 % lastPortionDur = cell2mat(stimArray(:,7)); % required for defining response interval
 durStatStart = cell2mat(logVar(2:end, strcmp(logHeader, 'durStatStart')));
 
@@ -113,11 +125,7 @@ trigTypes = uniqueStimTypes+150;
 stimTypes = [stimTypes, [{'trigger'}; num2cell(trigTypes)]];
 
 % create triggers for stimulus types, for all trials
-if bigBlock < 3
-    trig.stimType = cell2mat(stimArray(:, 20))+150;
-else
-    trig.stimType = cell2mat(stimArray(:, 12))+150;
-end
+trig.stimType = cell2mat(stimArray(:, stimTypeColumn))+150;
 
 % add triggers to logging / results variable
 logVar(2:end, strcmp(logHeader, 'trigger')) = num2cell(trig.stimType);
@@ -361,17 +369,10 @@ for block = startBlockNo:noBlocks
     trialList = trialIdx(blockIdx==block);
     buffer = [];
     for trial = min(trialList):max(trialList)
-        if bigBlock < 3
-            audioData = stimArray{trial, 19};
-            % Intensity roving:
-            audioData = 10^(SPL/20)*audioData;
-            buffer(end+1) = PsychPortAudio('CreateBuffer', [], audioData');
-        else
-            audioData = stimArray{trial, 11};
-            % Intensity roving:
-            audioData = 10^(SPL/20)*audioData;
-            buffer(end+1) = PsychPortAudio('CreateBuffer', [], audioData');
-        end
+        audioData = stimArray{trial, audioColumn};
+        % Intensity roving:
+        audioData = 10^(SPL/20)*audioData;
+        buffer(end+1) = PsychPortAudio('CreateBuffer', [], audioData');
     end
 
     % counter for trials in given block
@@ -582,7 +583,7 @@ for block = startBlockNo:noBlocks
         end
 
         % user messages
-        if cell2mat(stimArray(trial,18)) == 1 % if it's a target trial
+        if cell2mat(stimArray(trial,targetColumn)) == 1 % if it's a target trial
             if isnan(respTime(trial))
                 disp('Subject did not respond in time');
             else
@@ -697,7 +698,7 @@ for block = startBlockNo:noBlocks
         % accumulating all results in logging / results variable
         logVar(trial+1,strcmp(logHeader, 'SPL')) = {SPL};
         logVar(trial+1,strcmp(logHeader, 'respTime')) = {respTime(trial)};
-        logVar(trial+1,strcmp(logHeader, 'target')) = {stimArray(trial,18)};
+        logVar(trial+1,strcmp(logHeader, 'target')) = {stimArray(trial,targetColumn)};
 
         if bigBlock < 3
             logVar(trial+1,strcmp(logHeader, 'accDistance')) = {accDistance(trial)};
@@ -706,11 +707,6 @@ for block = startBlockNo:noBlocks
             logVar(trial+1,strcmp(logHeader, 'accDirection')) = {accDirection(trial)};
             logVar(trial+1,strcmp(logHeader, 'respDirection')) = {respDirection(trial)};
         end
-        
-        % logVar(trial+1, 10:end-1) = {acc(trial), ...
-        %     respTime(trial), iti(trial),...
-        %     trialStart, startTime-trialStart,...
-        %     respStart-startTime};
 
         % save logging/results variable
         save(subLogF, 'logVar');
@@ -834,7 +830,7 @@ for block = startBlockNo:noBlocks
 
     SPLidx = SPLidx+1; % changes in the next block
     SPL = SPLoptions(SPLidx);
-    disp([char(10), 'SPL is set to ', num2str(SPL)]);
+    disp([char(10), 'SPL is set to ', num2str(SPL)]); %#ok<*CHARTEN>
 
 end  % block for loop
 

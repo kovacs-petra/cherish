@@ -59,7 +59,7 @@ end
 % fields we expect in params files
 paramFields = {'filename','frequency','durStatStart','durMov1','durStatMiddle','durMov2','durStatEnd','totalDur',...
               'startDistMov1','stopDistMov1','startDistMov2','stopDistMov2','startSpaceMov1',...
-              'stopSpaceMov1','startSpaceMov2','stopSpaceMov2','trajectory', 'target'};
+              'stopSpaceMov1','startSpaceMov2','stopSpaceMov2','trajectory','azimuth','target'};
 
 % output variable collecting stimuli sets
 stimArray = cell(length(folders), 1);
