@@ -67,7 +67,7 @@ else
     stimFeaturesNo = 11;
 end
 % header for final stimTypes cell array (see the last code block)
-stimTypesHdr = {'space', 'trajectory','target','stimTypeIdx'};
+stimTypesHdr = {'space','trajectory','target','azimuth','stimTypeIdx'};
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % load stimuli
@@ -98,15 +98,17 @@ if bigBlock < 3
     space = cell2mat(stimArray(:, 16));
     trajectory = cell2mat(stimArray(:, 17));
     target = cell2mat(stimArray(:,18));
+    azimuth = cell2mat(stimArray(:,xxxxxx));
 else
     space = cell2mat(stimArray(:, 8));
     trajectory = cell2mat(stimArray(:, 9));
     target = cell2mat(stimArray(:,10));
+    azimuth = cell2mat(stimArray(:,xxxxxx));
 end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % unique combinations
-[stimTypes, ~, stimTypeIdx] = unique([space, trajectory, target], 'rows');
+[stimTypes, ~, stimTypeIdx] = unique([space, trajectory, target, azimuth], 'rows');
 
 % user message
 disp([char(10), 'There are ', num2str(size(stimTypes, 1)),... 
