@@ -70,26 +70,7 @@ fs = Obj.Data.SamplingRate;
 disp([char(10), 'Ready to start the experiment']);
 
 % Generate target sound and target iti
-targetITI = 0.1; % 100 ms
-target = sin(2*pi*1200*[0:(1/fs):targetITI-1/fs]); % 100 ms, 1200 Hz
-gap = zeros(targetITI*fs,2);
 
-% Intensity: On-Off-ramp
-rampT_samples = round(fs*.01);                                   % Ramp in order to avoid startle respoce (> 12 ms)
-rampT = sin(linspace(0, pi/2, rampT_samples));                      % cosine ramp
-rampT_end = cos(linspace(0, pi/2, rampT_samples));                  % cosine ramp
-target(1:rampT_samples) = target(1:rampT_samples)'.*rampT';
-target((end-rampT_samples+1):end) = target((end-rampT_samples+1):end)'.*rampT_end';
-target = [target' target'];
-
-% Add gap and target to target trials, or gap and gap to nontarget trials
-for row = 1:length(stimArray)
-    if stimArray{row,targetColumn} == 1 % target trials
-        stimArray{row,audioColumn} = [stimArray{row,audioColumn};gap;target];
-    else % nontarget trials
-        stimArray{row,audioColumn} = [stimArray{row,audioColumn};gap;gap];
-    end
-end
 
 %% Stimulus features for triggers + logging
 endSpace = cell2mat(logVar(2:end, strcmp(logHeader, 'space')));
