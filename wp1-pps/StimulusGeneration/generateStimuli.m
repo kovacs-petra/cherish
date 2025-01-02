@@ -54,6 +54,23 @@ PPS = 0.2;
 EPS = 2.0;
 v = 1; % velocity in m/s
 
+% Set values which have to be counterbalanced
+offsetAzimuthOptions = [...
+    repmat(30,1,nStimuli/2), ...
+    repmat(-30,1,nStimuli/2)]; % left or right
+targetTrials = [...
+    zeros(1,nStimuli/4), ...
+    ones(1,nStimuli/4), ...
+    zeros(1,nStimuli/4), ...
+    ones(1,nStimuli/4)]; % target or no target
+congruence = [...
+    nan(1,nStimuli/4), ... % nan where targetTrials is 0
+    zeros(1,nStimuli/8), ...
+    ones(1,nStimuli/8), ...
+    nan(1,nStimuli/4), ...
+    zeros(1,nStimuli/8), ...
+    ones(1,nStimuli/8)];
+
 %% Create a home for saved parameters
 outFields = {
     'filename', ...
@@ -62,11 +79,11 @@ outFields = {
     'durStatOnset', ...      % Duration of stationary onset
     'durStatOffset', ...     % Duration of stationary offset
     'onsetDistance', ...     % Cue onset distance in m
-    'offsetDistance', ...      % Cue offset distance in m
+    'offsetDistance', ...    % Cue offset distance in m
     'trajectory', ...        % 1 - loom, 2 - rec, 3 - rotate near, 4 - rotate far
     'offsetAzimuth', ...     % Side of the cue (at offset): 30 - left, -30 - right
-    'targetAzimuth', ...     % Side of the target: 30 - left, -30 - right
     'target', ...            % 1 - target trial, 0 - nontarget trial
+    'targetAzimuth', ...     % Side of the target: 30 - left, -30 - right               
     'congruence', ...        % 1 - congruent target, 0 - incongruent target
     };
 
@@ -101,7 +118,7 @@ for stimNo = 1:nStimuli
     end
 
     %% Set durations
-    % Stationary portions: 600-900 ms with round 100 values
+    % Stationary portions: 600-900 ms with round 100 values, in s
     durStatOnset = (randi(4,1)+5)/10; 
     durStatOffset = (randi(4,1)+5)/10;
 
@@ -111,26 +128,24 @@ for stimNo = 1:nStimuli
     % Calculate total duration
     totalDur = durStatOnset+durMoving+durStatOffset; % in s
 
-    % Set trajectory based on duration
-    rMain = [linspace(rOnset(1),rOnset(2),durStatOnset*fs),...
-        linspace(rMoving(1),rMoving(2),durMoving*fs),...
-        linspace(rOffset(1),rOffset(2),durStatOffset*fs)];
+    % Set trajectory vector based on the durations
+    rMain = [linspace(rOnset(1), rOnset(2), durStatOnset*fs), ...
+            linspace(rMoving(1), rMoving(2), durMoving*fs), ...
+            linspace(rOffset(1), rOffset(2), durStatOffset*fs)];
 
     %% Set azimuth
-    offsetAzimuthOptions = repmat([30 -30],1,nStimuli/2); % left half the time, right half the time
     offsetAzimuth = offsetAzimuthOptions(stimNo);
 
     if trajectory <= 2 % looming or receding
-        aziMain = [offsetAzimuth offsetAzimuth];
+        % aziMain = [offsetAzimuth offsetAzimuth];
+        aziMain = [linspace(offsetAzimuth, offsetAzimuth, durStatOnset*fs), ...
+            linspace(offsetAzimuth, offsetAzimuth, durMoving*fs), ...
+            linspace(offsetAzimuth, offsetAzimuth, durStatOffset*fs)];
     elseif trajectory >= 3 % rotating near or far
-        aziMain = [0 offsetAzimuth]; 
-        % May be needed:
-        % aziStatStart = [x x];
-        % aziStatEnd = [y y];
-        %
-        % aziMov1 = [x y];
-        %
-        % aziMain = [aziStatStart,aziMov1,aziStatEnd];
+        % aziMain = [0 offsetAzimuth];
+        aziMain = [linspace(0, offsetAzimuth, durStatOnset*fs), ...
+            linspace(0, offsetAzimuth, durMoving*fs), ...
+            linspace(0, offsetAzimuth, durStatOffset*fs)];        
     end
 
     %% Generate square waves and intensity ramps for each portion
@@ -144,10 +159,48 @@ for stimNo = 1:nStimuli
     tMoving = linspace(0,durMoving,durMoving*fs);
     moving = square(2*pi*frequency*tMoving);
 
-    %% Concatenate and spatialize
-    % intensityRampMain = [intensityRampStart intensityRampMov1 intensityRampMiddle intensityRampMov2 intensityRampEnd];
-    allPortions = [statOnset moving statOffset];
-    [stim, ~, ~, ~, ~] = local_SOFAspat(allPortions',Obj,aziMain,ele,rMain);
+    %% Generate targets
+    targetITI = 0.1; % 100 ms
+    target = sin(2*pi*1200*(0:(1/fs):targetITI-1/fs)); % 100 ms, 1200 Hz
+    gap = zeros(targetITI*fs,1);
+
+    % Intensity: On-Off-ramp
+    rampT_samples = round(fs*.01);                                   % Ramp in order to avoid startle respoce (> 12 ms)
+    rampT = sin(linspace(0, pi/2, rampT_samples));                   % cosine ramp
+    rampT_end = cos(linspace(0, pi/2, rampT_samples));               % cosine ramp
+    target(1:rampT_samples) = target(1:rampT_samples)'.*rampT';
+    target((end-rampT_samples+1):end) = target((end-rampT_samples+1):end)'.*rampT_end';
+
+    % Spatialize target exactly between the two endpoints of the cue
+    rTarget = mean([EPS,PPS]);
+    rMain = [linspace(rOnset(1),rOnset(2),durStatOnset*fs), ...
+        linspace(rMoving(1),rMoving(2),durMoving*fs), ...
+        linspace(rOffset(1),rOffset(2),durStatOffset*fs), ...
+        linspace(rTarget,rTarget,(targetITI*fs)*2)];
+
+    % Target azimuth is congruent (same as offset azimuth) half the time
+    % and incongruent (opposite of offset azimuth) half the time
+    if targetTrials(stimNo) == 1 % if it is a target trial
+        if congruence(stimNo) == 1
+            targetAzimuth = offsetAzimuth; % 30 or -30 deg
+        else
+            targetAzimuth = -1*offsetAzimuth;
+        end
+    else
+        targetAzimuth = nan;
+    end
+
+    aziMain = [aziMain, ...
+        linspace(targetAzimuth,targetAzimuth,(targetITI*fs)*2)];
+
+    %% Concatenate the sound portions and spatialize the stimuli
+    if targetTrials(stimNo) == 1
+        allPortions = [statOnset moving statOffset gap' target];
+    else
+        allPortions = [statOnset moving statOffset gap' gap'];
+    end
+
+    [stim, ~, ~, ~, ~] = local_SOFAspat(allPortions',Obj,aziMain,ele,rMain,EPS,PPS);
 
     % Save results to wav, add parameters to the cell array later saved out
     % to csv
@@ -160,7 +213,7 @@ for stimNo = 1:nStimuli
 
     filename = strcat(wavDir, '-', temp, num2str(stimNo));
     outCsv(stimNo+1, :) = {filename, frequency, totalDur, durStatOnset, durStatOffset,  rMoving(1), ...
-        rMoving(2), trajectory, offsetAzimuth, targetAzimuth, target(stimNo), congruence};
+        rMoving(2), trajectory, offsetAzimuth, targetTrials(stimNo), targetAzimuth, congruence(stimNo)};
     audiowrite(strcat('./', wavDir, '/', filename, '.wav'), stim, fs);
 
 end % stimulus generation loop
@@ -175,12 +228,12 @@ disp([newline, 'Task done, files and parameters are saved to directory ', wavDir
 
 end % function
 
-function [out, aziActual, eleActual, rActual, idx] = local_SOFAspat(signal,Obj,azi,ele,r)
+function [out, aziActual, eleActual, rActual, idx] = local_SOFAspat(signal,Obj,azi,ele,r,EPS,PPS)
 if length(r)~=length(signal)
     errorText = ['Signal (length: ', num2str(length(signal)), ') and r (length: ',...
         num2str(length(r)),') need to have the same length!'];
     error(errorText)
 end
-signal = db2mag(-100)*signal; % -26 dB to compensate for distance change from 1 to 0.05 and additional 65 dB to compensate for the particular type of HRTFs
+signal = db2mag(db(EPS,PPS)+65)*signal; % compensate for distance change from EPS to PPS and additional 65 dB to compensate for the particular type of HRTFs
 [out, aziActual, eleActual, rActual, idx] = SOFAspat(signal./r(:),Obj,azi,ele,r);
 end
