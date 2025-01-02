@@ -42,10 +42,11 @@ if not(exist("SOFAdbPath.m","file"))
     addpath(sofaPath);
     SOFAstart;
 end
-database = 'scut';
-HRTFfilename = 'SCUT_KEMAR_radius_all.sofa';
-fullfn = fullfile(SOFAdbPath, 'database', database, HRTFfilename);
-Obj = SOFAload(fullfn);
+% database = 'scut';
+% HRTFfilename = 'SCUT_KEMAR_radius_all.sofa';
+% fullfn = fullfile(SOFAdbPath, 'database', database, HRTFfilename);
+% Obj = SOFAload(fullfn);
+load("Obj_KosiceBRIR.mat", 'Obj');
 fs = Obj.Data.SamplingRate;
 
 % Set radii for all stimuli
@@ -200,7 +201,7 @@ for stimNo = 1:nStimuli
         allPortions = [statOnset moving statOffset gap' gap'];
     end
 
-    [stim, ~, ~, ~, ~] = local_SOFAspat(allPortions',Obj,aziMain,ele,rMain,EPS,PPS);
+    [stim, aziActual, ~, rActual, ~] = local_SOFAspat(allPortions',Obj,aziMain,ele,rMain,EPS,PPS);
 
     % Save results to wav, add parameters to the cell array later saved out
     % to csv
