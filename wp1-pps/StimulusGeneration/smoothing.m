@@ -1,20 +1,22 @@
+% Run generateStimuli to get variable stim
 originalSignal = stim(:,1);
 windowDuration = 0.003; % Window duration in seconds
 windowSize = round(fs * windowDuration); % Number of samples in the window: increase if insufficient, decrease if too aggressive smoothing
 
-%% v1 - Gaussian
-
+%% Gaussian
 sigma = windowSize / 6; % Standard deviation of the Gaussian
 gaussianWindow = gausswin(windowSize, sigma); % Create Gaussian window
 gaussianWindow = gaussianWindow / sum(gaussianWindow); % Normalize
 smoothedSignal = conv(stim(:,1), gaussianWindow, 'same');
-% smoothedSignal = movmean(stim(:,1), windowSize); % Apply moving average
 
-%% v2 - median filter
+%% Moving average
+smoothedSignal = movmean(stim(:,1), windowSize); % Apply moving average
+
+%% median filter
 alpha = 0.5; % Smoothing factor (0 < alpha < 1)
 smoothedSignal = filter(alpha, [1 alpha-1], stim(:,1));
 
-%% v3 - Hanning
+%% Hanning
 hanningWindow = hann(windowSize); % Generate Hanning window
 hanningWindow = hanningWindow / sum(hanningWindow); % Normalize the window
 
