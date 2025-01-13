@@ -4,22 +4,22 @@ function generateStimuli(nStimuli,trajectory)
 %
 % Inputs:
 % nStimuli      - integer, number of stimuli to generate in the given trajectory
-%                 (default = 120)
+%                 (usually 120; has to be divisible by 8 for counterbalancing)
 % trajectory    - 1: looming, 2: receding, 3: rotating near, 4: rotating
 %                 far
 %
 % Output:
-% Directory with the generated .wav files
+% Directory with the generated .wav files, named after the date and time
+% created
 %
 % Author: Petra Kovacs
 
 %% Set default parameters
 ele = [0 0]; % elevation is always 0
 
-if ~exist('nStimuli', 'var')
-    nStimuli = 120;
-elseif mod(nStimuli,2) ~= 0
-    error('nStimuli has to be an even number.')
+if mod(nStimuli,8) ~= 0
+    error(['nStimuli has to be divisible by 8 to allow to counterbalance some parameters.', ...
+        ' Try 8 for debugging or 120 for a typical batch of stimuli.'])
 end
 
 % Create directory for saving audio data + parameters files
@@ -42,11 +42,12 @@ if not(exist("SOFAdbPath.m","file"))
     addpath(sofaPath);
     SOFAstart;
 end
-% database = 'scut';
-% HRTFfilename = 'SCUT_KEMAR_radius_all.sofa';
-% fullfn = fullfile(SOFAdbPath, 'database', database, HRTFfilename);
-% Obj = SOFAload(fullfn);
-load("Obj_KosiceBRIR.mat", 'Obj');
+% database = 'kosice';
+% HRTFfilename = 'KosiceBRIR.sofa';
+database = 'scut';
+HRTFfilename = 'SCUT_KEMAR_radius_all.sofa';
+fullfn = fullfile(SOFAdbPath, 'database', database, HRTFfilename);
+Obj = SOFAload(fullfn);
 fs = Obj.Data.SamplingRate;
 
 % Set radii for all stimuli
@@ -57,8 +58,8 @@ v = 1; % velocity in m/s
 
 % Set values which have to be counterbalanced
 offsetAzimuthOptions = [...
-    repmat(30,1,nStimuli/2), ...
-    repmat(-30,1,nStimuli/2)]; % left or right
+    repmat(90,1,nStimuli/2), ...
+    repmat(-90,1,nStimuli/2)]; % left or right
 targetTrials = [...
     zeros(1,nStimuli/4), ...
     ones(1,nStimuli/4), ...
@@ -82,9 +83,9 @@ outFields = {
     'onsetDistance', ...     % Cue onset distance in m
     'offsetDistance', ...    % Cue offset distance in m
     'trajectory', ...        % 1 - loom, 2 - rec, 3 - rotate near, 4 - rotate far
-    'offsetAzimuth', ...     % Side of the cue (at offset): 30 - left, -30 - right
+    'offsetAzimuth', ...     % Side of the cue (at offset): 90 - left, -90 - right
     'target', ...            % 1 - target trial, 0 - nontarget trial
-    'targetAzimuth', ...     % Side of the target: 30 - left, -30 - right               
+    'targetAzimuth', ...     % Side of the target: 90 - left, -90 - right               
     'congruence', ...        % 1 - congruent target, 0 - incongruent target
     };
 
@@ -93,7 +94,7 @@ outCsv(1,:) = outFields;
 
 %% Stimulus generation loop
 for stimNo = 1:nStimuli
-    frequency = (randi(4,1)+4)*100; % 500-800 Hz with round 100 values
+    frequency = (randi(4,1)+5)*100; % 600-900 Hz with round 100 values
 
     % Set radii
     switch trajectory
@@ -149,7 +150,7 @@ for stimNo = 1:nStimuli
             linspace(0, offsetAzimuth, durStatOffset*fs)];        
     end
 
-    %% Generate square waves and intensity ramps for each portion
+    %% Generate square waves for each portion
     % Generate square waves for stationary portions
     tStatOnset = linspace(0,durStatOnset,durStatOnset*fs);
     statOnset = square(2*pi*frequency*tStatOnset);
@@ -160,9 +161,14 @@ for stimNo = 1:nStimuli
     tMoving = linspace(0,durMoving,durMoving*fs);
     moving = square(2*pi*frequency*tMoving);
 
+    %% Alternatively: generate triangle waves
+    % statOnset = sawtooth(2*pi*frequency*tStatOnset,1/2);
+    % statOffset = sawtooth(2*pi*frequency*tStatOffset,1/2);
+    % moving = sawtooth(2*pi*frequency*tMoving,1/2);
+
     %% Generate targets
     targetITI = 0.1; % 100 ms
-    target = sin(2*pi*1200*(0:(1/fs):targetITI-1/fs)); % 100 ms, 1200 Hz
+    target = sin(2*pi*2400*(0:(1/fs):targetITI-1/fs)); % 100 ms, 2400 Hz
     gap = zeros(targetITI*fs,1);
 
     % Intensity: On-Off-ramp
@@ -183,7 +189,7 @@ for stimNo = 1:nStimuli
     % and incongruent (opposite of offset azimuth) half the time
     if targetTrials(stimNo) == 1 % if it is a target trial
         if congruence(stimNo) == 1
-            targetAzimuth = offsetAzimuth; % 30 or -30 deg
+            targetAzimuth = offsetAzimuth; % 90 or -90 deg
         else
             targetAzimuth = -1*offsetAzimuth;
         end
@@ -203,6 +209,17 @@ for stimNo = 1:nStimuli
 
     [stim, aziActual, ~, rActual, ~] = local_SOFAspat(allPortions',Obj,aziMain,ele,rMain,EPS,PPS);
 
+    % Apply Gaussian window to smooth out the artefacts arising from HRTF
+    % switching points
+    windowDuration = 0.1; % Window duration in seconds
+    windowSize = round(fs * windowDuration); % Number of samples in the window: increase if insufficient, decrease if too aggressive smoothing
+    sigma = windowSize / 6; % Standard deviation of the Gaussian
+    gaussianWindow = gausswin(windowSize, sigma); % Create Gaussian window
+    gaussianWindow = gaussianWindow / sum(gaussianWindow); % Normalize
+    smoothLeft = conv(stim(:,1), gaussianWindow, 'same');
+    smoothRight = conv(stim(:,2), gaussianWindow, 'same');
+    smoothStim = int32([smoothLeft smoothRight]); % needs to be int32 for audiowrite to keep the spatialization quality
+
     % Save results to wav, add parameters to the cell array later saved out
     % to csv
     digits = ceil(log10(nStimuli + 1));
@@ -215,7 +232,7 @@ for stimNo = 1:nStimuli
     filename = strcat(wavDir, '-', temp, num2str(stimNo));
     outCsv(stimNo+1, :) = {filename, frequency, totalDur, durStatOnset, durStatOffset,  rMoving(1), ...
         rMoving(2), trajectory, offsetAzimuth, targetTrials(stimNo), targetAzimuth, congruence(stimNo)};
-    audiowrite(strcat('./', wavDir, '/', filename, '.wav'), stim, fs);
+    audiowrite(strcat('./', wavDir, '/', filename, '.wav'), smoothStim, fs);
 
 end % stimulus generation loop
 
@@ -229,6 +246,7 @@ disp([newline, 'Task done, files and parameters are saved to directory ', wavDir
 
 end % function
 
+% Include intensity ramp when spatializing with SOFAspat:
 function [out, aziActual, eleActual, rActual, idx] = local_SOFAspat(signal,Obj,azi,ele,r,EPS,PPS)
 if length(r)~=length(signal)
     errorText = ['Signal (length: ', num2str(length(signal)), ') and r (length: ',...
