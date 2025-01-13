@@ -157,6 +157,13 @@ for stimNo = 1:nStimuli
     tStatOffset = linspace(0,durStatOffset,durStatOffset*fs);
     statOffset  = square(2*pi*frequency*tStatOffset);
 
+    % Ramp the onset and the offset
+    rampSamples = round(fs*0.01);
+    rampOnset = sin(linspace(0,pi/2,rampSamples));
+    rampOffset = cos(linspace(0,pi/2,rampSamples));
+    statOnset(1:rampSamples) = statOnset(1:rampSamples)'.*rampOnset';
+    statOffset((end-rampSamples+1):end) = statOffset((end-rampSamples+1):end)'.*rampOffset';
+
     % Generate square waves for moving portion
     tMoving = linspace(0,durMoving,durMoving*fs);
     moving = square(2*pi*frequency*tMoving);
@@ -171,19 +178,16 @@ for stimNo = 1:nStimuli
     target = sin(2*pi*2400*(0:(1/fs):targetITI-1/fs)); % 100 ms, 2400 Hz
     gap = zeros(targetITI*fs,1);
 
-    % Intensity: On-Off-ramp
-    rampT_samples = round(fs*.01);                                   % Ramp in order to avoid startle respoce (> 12 ms)
-    rampT = sin(linspace(0, pi/2, rampT_samples));                   % cosine ramp
-    rampT_end = cos(linspace(0, pi/2, rampT_samples));               % cosine ramp
-    target(1:rampT_samples) = target(1:rampT_samples)'.*rampT';
-    target((end-rampT_samples+1):end) = target((end-rampT_samples+1):end)'.*rampT_end';
+    % Ramp the target as well
+    target(1:rampSamples) = target(1:rampSamples)'.*rampOnset';
+    target((end-rampSamples+1):end) = target((end-rampSamples+1):end)'.*rampOffset';
 
     % Spatialize target at the same distance where the cue ends
     rTarget = rOffset;
     rMain = [linspace(rOnset(1),rOnset(2),durStatOnset*fs), ...
         linspace(rMoving(1),rMoving(2),durMoving*fs), ...
         linspace(rOffset(1),rOffset(2),durStatOffset*fs), ...
-        linspace(rTarget,rTarget,(targetITI*fs)*2)];
+        linspace(rTarget(1),rTarget(2),(targetITI*fs)*2)];
 
     % Target azimuth is congruent (same as offset azimuth) half the time
     % and incongruent (opposite of offset azimuth) half the time
