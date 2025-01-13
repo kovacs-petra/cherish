@@ -58,8 +58,8 @@ v = 1; % velocity in m/s
 
 % Set values which have to be counterbalanced
 offsetAzimuthOptions = [...
-    repmat(90,1,nStimuli/2), ...
-    repmat(-90,1,nStimuli/2)]; % left or right
+    repmat(30,1,nStimuli/2), ...
+    repmat(-30,1,nStimuli/2)]; % left or right
 targetTrials = [...
     zeros(1,nStimuli/4), ...
     ones(1,nStimuli/4), ...
@@ -178,8 +178,8 @@ for stimNo = 1:nStimuli
     target(1:rampT_samples) = target(1:rampT_samples)'.*rampT';
     target((end-rampT_samples+1):end) = target((end-rampT_samples+1):end)'.*rampT_end';
 
-    % Spatialize target exactly between the two endpoints of the cue
-    rTarget = mean([EPS,PPS]);
+    % Spatialize target at the same distance where the cue ends
+    rTarget = rOffset;
     rMain = [linspace(rOnset(1),rOnset(2),durStatOnset*fs), ...
         linspace(rMoving(1),rMoving(2),durMoving*fs), ...
         linspace(rOffset(1),rOffset(2),durStatOffset*fs), ...
@@ -189,7 +189,7 @@ for stimNo = 1:nStimuli
     % and incongruent (opposite of offset azimuth) half the time
     if targetTrials(stimNo) == 1 % if it is a target trial
         if congruence(stimNo) == 1
-            targetAzimuth = offsetAzimuth; % 90 or -90 deg
+            targetAzimuth = offsetAzimuth; % 30 or -30 deg
         else
             targetAzimuth = -1*offsetAzimuth;
         end
