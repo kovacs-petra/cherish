@@ -1,4 +1,4 @@
-function stimArray = getStimuliArray(folders,conditions)
+function stimArray = getStimuliArray(conditions)
 %% Function to summarize CherISH pilot stimuli (blocks 1-2) into one big stimuli mat file
 %
 % USAGE: stimArray = getStimuliArray(folders)
@@ -24,10 +24,11 @@ function stimArray = getStimuliArray(folders,conditions)
 %
 
 %% Input check
-
-% folders = {'29-Nov-2024-1654','29-Nov-2024-1654_1'}; % block 1
-% folders = {'26-Nov-2024-1559','26-Nov-2024-1559_1','26-Nov-2024-1559_2','26-Nov-2024-160'}; % block 2
-% folders = {'26-Nov-2024-162','26-Nov-2024-162_1'}; % familiarization
+if conditions == 1
+    folders = {'13-Jan-2025-1327','13-Jan-2025-1327_1'}; % task 1
+else
+    folders = {'13-Jan-2025-1327_2','13-Jan-2025-1327_3'}; % task 2
+end
 
 % if input is string, put it into cell
 if ischar(folders)
