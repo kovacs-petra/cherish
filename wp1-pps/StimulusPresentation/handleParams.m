@@ -1,7 +1,7 @@
 function [stimArray, sortIndices, startTrialNo,... 
     startBlockNo, blockIdx, trialIdx,...
     logVar, subLogF, returnFlag, logHeader,...
-    stimTypes] = handleParams(subNum, stimArrayFile, noBlocks, bigBlock)
+    stimTypes] = handleParams(subNum, stimArrayFile, noBlocks)
 %% Function handling parameters/settings, stimuli and conflicts
 %
 % USAGE: [stimArray, sortIndices, startTrialNo,... 
@@ -106,10 +106,10 @@ oldParamsFileFlag = 0;
 oldParamsMatchFlag = 0;
 logFileFlag = 0;
 % log header - needed for sanity check as well
-logHeader = {'subNum', 'blockNo', 'bigBlock', 'trialNo', ... 
-    'lastDistance', 'space', 'trajectory', 'SPL', 'totalDur', ...
-    'durStatStart','azimuth','accDistance', 'accDirection', 'respTime', ...
-    'target', 'respSpace', 'respDirection', 'trigger'};
+logHeader = {'subNum', 'blockNo', 'trialNo', 'trajectory', ... 
+    'onsetDistance','offsetDistance', 'SPL', 'totalDur', 'durStatOnset', ...
+    'durStatOffset', 'offsetAzimuth', 'target', 'targetAzimuth', 'congruence',...
+    'accuracy', 'respTime', 'trigger'};
 
 % check if subject folder already exists
 if exist(dirN, 'dir')
@@ -200,20 +200,19 @@ end
 
 
 %% Initialize settings and log, depending on the outcome of the previous block
-
 % if there was no matching parameters file, generate everything from
 % scratch
 if ~oldParamsMatchFlag
-
     % user message
     disp([char(10), 'We load the stimuli, perform checks on it and sort them to blocks with stim2blocks']);
     
     % get new random seed, set RNG
     randomseed = round(sum(c));
     rng(randomseed);
+
     % check stimuli and sort them into blocks
     [blockIdx, stimTypes, stimTypeIdx,... 
-        stimArray, trialIdx] = stim2blocks(stimArrayFile, noBlocks, bigBlock);   
+        stimArray, trialIdx] = stim2blocks(stimArrayFile, noBlocks);   
     
 % if old params were matching the ones supplied now (e.g. in case of a 
 % second session of the subject) we just load stimuli and use the block 
@@ -245,11 +244,9 @@ disp([char(10), 'Loaded stimuli and saved out parameters/settings into params fi
 
 % attach stimulus type indices, block and trial indices to stimulus
 % array - but first a quick sanity check of stimArray size
-if bigBlock < 3
-    cols = 19;
-else 
-    cols = 11;
-end
+%%%%%% HARD-CODED VALUE %%%%%%
+cols = 13;
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 if ~isequal(size(stimArray), [length(trialIdx), cols])
     error('Stimulus cell array ("stimArray") has unexpected size, investigate!');
@@ -261,9 +258,7 @@ stimArray = [stimArray, num2cell(stimTypeIdx), num2cell(blockIdx), num2cell(tria
 % user message
 disp([char(10), 'Sorted stimuli into final stimArray']);
 
-
 %% Init logging/result variable if there was no logging/result file
-
 % if there was no valid log file / logging variable, init one
 if ~logFileFlag
     % user message
@@ -274,30 +269,22 @@ if ~logFileFlag
     logVar(1, :) = logHeader;
 
     % insert known columns in advance
-    if bigBlock < 3
-        logVar(2:end, strcmp(logHeader, 'subNum')) = num2cell(repmat(subNum, [size(stimArray, 1), 1]));  % subNum
-        logVar(2:end, strcmp(logHeader, 'blockNo')) = stimArray(:, 20);
-        logVar(2:end, strcmp(logHeader, 'bigBlock')) = num2cell(bigBlock); 
-        logVar(2:end, strcmp(logHeader, 'trialNo')) = stimArray(:, 21);  % trialNo
-        logVar(2:end, strcmp(logHeader, 'lastDistance')) = stimArray(:, 12); % distance in m
-        logVar(2:end, strcmp(logHeader, 'space')) = stimArray(:, 16);  % space category of stim
-        logVar(2:end, strcmp(logHeader, 'trajectory')) = stimArray(:, 17);  % trajectory (e.g. loom-rec)
-        logVar(2:end, strcmp(logHeader, 'totalDur')) = stimArray(:, 8); % stimulus length
-    else
-        logVar(2:end, strcmp(logHeader, 'subNum')) = num2cell(repmat(subNum, [size(stimArray, 1), 1]));  % subNum
-        logVar(2:end, strcmp(logHeader, 'blockNo')) = stimArray(:, 12);
-        logVar(2:end, strcmp(logHeader, 'bigBlock')) = num2cell(bigBlock); 
-        logVar(2:end, strcmp(logHeader, 'trialNo')) = stimArray(:, 13);  % trialNo
-        logVar(2:end, strcmp(logHeader, 'lastDistance')) = stimArray(:, 7); % distance in m
-        logVar(2:end, strcmp(logHeader, 'space')) = stimArray(:, 8);  % space category of stim
-        logVar(2:end, strcmp(logHeader, 'trajectory')) = stimArray(:, 9);  % trajectory (e.g. left)
-        logVar(2:end, strcmp(logHeader, 'totalDur')) = stimArray(:, 6); % stimulus length
-        logVar(2:end, strcmp(logHeader, 'durStatStart')) = stimArray(:, 3); % duration of first static portion (for RT calculation)
-    end
+    logVar(2:end, strcmp(logHeader, 'subNum'))          = num2cell(repmat(subNum, [size(stimArray, 1), 1]));  % subNum
+    logVar(2:end, strcmp(logHeader, 'blockNo'))         = stimArray(:, 15);
+    logVar(2:end, strcmp(logHeader, 'trialNo'))         = stimArray(:, 16); 
+    logVar(2:end, strcmp(logHeader, 'trajectory'))      = stimArray(:, 8);  
+    logVar(2:end, strcmp(logHeader, 'onsetDistance'))   = stimArray(:, 6);   
+    logVar(2:end, strcmp(logHeader, 'offsetDistance'))  = stimArray(:, 7);
+    logVar(2:end, strcmp(logHeader, 'totalDur'))        = stimArray(:, 3);
+    logVar(2:end, strcmp(logHeader, 'durStatOnset'))    = stimArray(:, 4);
+    logVar(2:end, strcmp(logHeader, 'durStatOffset'))   = stimArray(:, 5);
+    logVar(2:end, strcmp(logHeader, 'offsetAzimuth'))   = stimArray(:, 9);
+    logVar(2:end, strcmp(logHeader, 'target'))          = stimArray(:, 10);
+    logVar(2:end, strcmp(logHeader, 'targetAzimuth'))   = stimArray(:, 11);
+    logVar(2:end, strcmp(logHeader, 'congruence'))      = stimArray(:, 12);
 end
 
 %% Find correct start point if there was a valid logging file
-
 % If the last trial of a block was finished (and the block was not the last one) we 
 % start with the next block. Otherwise we restart the last block.
 
@@ -412,7 +399,6 @@ else
         'First block is set to ', num2str(startBlockNo)]);
     
 end
-
 
 
 return
