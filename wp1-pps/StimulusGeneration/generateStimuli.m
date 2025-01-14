@@ -145,9 +145,9 @@ for stimNo = 1:nStimuli
             linspace(offsetAzimuth, offsetAzimuth, durStatOffset*fs)];
     elseif trajectory >= 3 % rotating near or far
         % aziMain = [0 offsetAzimuth];
-        aziMain = [linspace(0, offsetAzimuth, durStatOnset*fs), ...
+        aziMain = [linspace(0, 0, durStatOnset*fs), ...
             linspace(0, offsetAzimuth, durMoving*fs), ...
-            linspace(0, offsetAzimuth, durStatOffset*fs)];        
+            linspace(offsetAzimuth, offsetAzimuth, durStatOffset*fs)];        
     end
 
     %% Generate square waves for each portion
@@ -222,7 +222,7 @@ for stimNo = 1:nStimuli
     gaussianWindow = gaussianWindow / sum(gaussianWindow); % Normalize
     smoothLeft = conv(stim(:,1), gaussianWindow, 'same');
     smoothRight = conv(stim(:,2), gaussianWindow, 'same');
-    smoothStim = int32([smoothLeft smoothRight]); % needs to be int32 for audiowrite to keep the spatialization quality
+    smoothStim = [smoothLeft smoothRight]; 
 
     % Save results to wav, add parameters to the cell array later saved out
     % to csv
@@ -236,7 +236,8 @@ for stimNo = 1:nStimuli
     filename = strcat(wavDir, '-', temp, num2str(stimNo));
     outCsv(stimNo+1, :) = {filename, frequency, totalDur, durStatOnset, durStatOffset,  rMoving(1), ...
         rMoving(2), trajectory, offsetAzimuth, targetTrials(stimNo), targetAzimuth, congruence(stimNo)};
-    audiowrite(strcat('./', wavDir, '/', filename, '.wav'), smoothStim, fs);
+    % audiowrite(strcat('./', wavDir, '/', filename, '.wav'), smoothStim, fs);
+    save(strcat('./', wavDir, '/', filename, '.mat'), "smoothStim");
 
 end % stimulus generation loop
 
@@ -257,6 +258,6 @@ if length(r)~=length(signal)
         num2str(length(r)),') need to have the same length!'];
     error(errorText)
 end
-signal = db2mag(db(EPS,PPS)+65)*signal; % compensate for distance change from EPS to PPS and additional 65 dB to compensate for the particular type of HRTFs
+signal = db2mag(-100)*signal; % compensate for distance change from EPS to PPS and additional 65 dB to compensate for the particular type of HRTFs
 [out, aziActual, eleActual, rActual, idx] = SOFAspat(signal./r(:),Obj,azi,ele,r);
 end
