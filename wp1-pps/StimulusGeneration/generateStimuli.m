@@ -14,12 +14,15 @@ function generateStimuli(nStimuli,trajectory)
 %
 % Author: Petra Kovacs
 
-%% Set default parameters
-ele = [0 0]; % elevation is always 0
+%% Initial user message and input check
+disp(['The BRT Renderer App should be open for this. If it isn''t, ', newline,...
+    'it''s not too late to press Ctrl + C and rethink your life.',newline,newline]);
 
 if mod(nStimuli,8) ~= 0
     error(['nStimuli has to be divisible by 8 to allow to counterbalance some parameters.', ...
         ' Try 8 for debugging or 120 for a typical batch of stimuli.'])
+elseif trajectory > 4
+    error('trajectory has to be an integer between 1 and 4');
 end
 
 % Create directory for saving audio data + parameters files
@@ -35,20 +38,7 @@ while exist(wavDir, 'dir')
     wavDir = strcat(wavDir, '_', num2str(dircount));
 end
 mkdir(wavDir);
-
-% Load HRTF dataset for spatialization
-if not(exist("SOFAdbPath.m","file"))
-    sofaPath = '\\kfs\fileserver\ProjektDaten\CherISH\code\SOFAtoolbox\SOFAtoolbox';
-    addpath(sofaPath);
-    SOFAstart;
-end
-% database = 'kosice';
-% HRTFfilename = 'KosiceBRIR.sofa';
-database = 'scut';
-HRTFfilename = 'SCUT_KEMAR_radius_all.sofa';
-fullfn = fullfile(SOFAdbPath, 'database', database, HRTFfilename);
-Obj = SOFAload(fullfn);
-fs = Obj.Data.SamplingRate;
+fs = 48000;
 
 % Set radii for all stimuli
 % Representative distances of each space in meter:
@@ -58,8 +48,8 @@ v = 1; % velocity in m/s
 
 % Set values which have to be counterbalanced
 offsetAzimuthOptions = [...
-    repmat(30,1,nStimuli/2), ...
-    repmat(-30,1,nStimuli/2)]; % left or right
+    repmat(90,1,nStimuli/2), ...
+    repmat(-90,1,nStimuli/2)]; % left or right
 targetTrials = [...
     zeros(1,nStimuli/4), ...
     ones(1,nStimuli/4), ...
@@ -91,6 +81,22 @@ outFields = {
 
 outCsv = cell(nStimuli+1,length(outFields));
 outCsv(1,:) = outFields;
+
+%% Set connection between Matlab and BRT through OSC; set some settings
+u = pnet('udpsocket',10017); % Listen port in BRT
+oscsend(u, '/control/connect', 'si', 'localhost',10019);
+oscsend(u, '/listener/enableSpatialization', 'sB', 'DefaultListener',1);
+oscsend(u, '/listener/enableInterpolation', 'sB', 'DefaultListener',1);
+oscsend(u, '/listener/enableNearFieldEffect', 'sB', 'DefaultListener',1);
+oscsend(u, '/listener/enableITD', 'sB', 'DefaultListener',1);
+oscsend(u, '/environment/enableModel', 'sB', 'FreeField',1);
+oscsend(u, '/environment/enableDirectPath', 'sB', 'FreeField',1);
+oscsend(u, '/environment/enableReverbPath', 'sB', 'FreeField',1);
+oscsend(u, '/listener/enableParallaxCorrection', 'sB', 'DefaultListener',1);
+oscsend(u, '/listener/enableModel', 'sB', 'DirectPath', 1);
+oscsend(u, '/listener/enableModel', 'sB', 'ReverbPath', 1);
+oscsend(u, '/environment/enablePropagationDelay', 'sB', 'FreeField', 1);
+oscsend(u, '/environment/enableDistanceAttenuation', 'sB', 'FreeField', 1);
 
 %% Stimulus generation loop
 for stimNo = 1:nStimuli
@@ -125,29 +131,32 @@ for stimNo = 1:nStimuli
     durStatOffset = (randi(4,1)+5)/10;
 
     % Moving portion: duration calculated from distance and velocity
-    durMoving = abs(rMoving(2)-rMoving(1))/v;
+    durMoving = abs(EPS-PPS)/v;
 
     % Calculate total duration
     totalDur = durStatOnset+durMoving+durStatOffset; % in s
 
+    updateRate = 2/1000; % every 2 ms
+    ele = linspace(0,0,round(totalDur/updateRate));
+
     % Set trajectory vector based on the durations
-    rMain = [linspace(rOnset(1), rOnset(2), durStatOnset*fs), ...
-            linspace(rMoving(1), rMoving(2), durMoving*fs), ...
-            linspace(rOffset(1), rOffset(2), durStatOffset*fs)];
+    rMain = [linspace(rOnset(1), rOnset(2), round(durStatOnset/updateRate)), ...
+            linspace(rMoving(1), rMoving(2), round(durMoving/updateRate)), ...
+            linspace(rOffset(1), rOffset(2), round(durStatOffset/updateRate))];
 
     %% Set azimuth
     offsetAzimuth = offsetAzimuthOptions(stimNo);
 
     if trajectory <= 2 % looming or receding
         % aziMain = [offsetAzimuth offsetAzimuth];
-        aziMain = [linspace(offsetAzimuth, offsetAzimuth, durStatOnset*fs), ...
-            linspace(offsetAzimuth, offsetAzimuth, durMoving*fs), ...
-            linspace(offsetAzimuth, offsetAzimuth, durStatOffset*fs)];
+        aziMain = [linspace(offsetAzimuth, offsetAzimuth, round(durStatOnset/updateRate)), ...
+            linspace(offsetAzimuth, offsetAzimuth, round(durMoving/updateRate)), ...
+            linspace(offsetAzimuth, offsetAzimuth, round(durStatOffset/updateRate))];
     elseif trajectory >= 3 % rotating near or far
         % aziMain = [0 offsetAzimuth];
-        aziMain = [linspace(0, 0, durStatOnset*fs), ...
-            linspace(0, offsetAzimuth, durMoving*fs), ...
-            linspace(offsetAzimuth, offsetAzimuth, durStatOffset*fs)];        
+        aziMain = [linspace(0, 0, round(durStatOnset/updateRate)), ...
+            linspace(0, offsetAzimuth, round(durMoving/updateRate)), ...
+            linspace(offsetAzimuth, offsetAzimuth, round(durStatOffset/updateRate))];        
     end
 
     %% Generate square waves for each portion
@@ -168,11 +177,6 @@ for stimNo = 1:nStimuli
     tMoving = linspace(0,durMoving,durMoving*fs);
     moving = square(2*pi*frequency*tMoving);
 
-    %% Alternatively: generate triangle waves
-    % statOnset = sawtooth(2*pi*frequency*tStatOnset,1/2);
-    % statOffset = sawtooth(2*pi*frequency*tStatOffset,1/2);
-    % moving = sawtooth(2*pi*frequency*tMoving,1/2);
-
     %% Generate targets
     targetITI = 0.1; % 100 ms
     target = sin(2*pi*2400*(0:(1/fs):targetITI-1/fs)); % 100 ms, 2400 Hz
@@ -184,16 +188,16 @@ for stimNo = 1:nStimuli
 
     % Spatialize target at the same distance where the cue ends
     rTarget = rOffset;
-    rMain = [linspace(rOnset(1),rOnset(2),durStatOnset*fs), ...
-        linspace(rMoving(1),rMoving(2),durMoving*fs), ...
-        linspace(rOffset(1),rOffset(2),durStatOffset*fs), ...
-        linspace(rTarget(1),rTarget(2),(targetITI*fs)*2)];
+    rMain = [linspace(rOnset(1),rOnset(2),round(durStatOnset/updateRate)), ...
+        linspace(rMoving(1),rMoving(2),round(durMoving/updateRate)), ...
+        linspace(rOffset(1),rOffset(2),round(durStatOffset/updateRate)), ...
+        linspace(rTarget(1),rTarget(2),round((targetITI/updateRate))*2)];
 
     % Target azimuth is congruent (same as offset azimuth) half the time
     % and incongruent (opposite of offset azimuth) half the time
     if targetTrials(stimNo) == 1 % if it is a target trial
         if congruence(stimNo) == 1
-            targetAzimuth = offsetAzimuth; % 30 or -30 deg
+            targetAzimuth = offsetAzimuth; 
         else
             targetAzimuth = -1*offsetAzimuth;
         end
@@ -202,7 +206,9 @@ for stimNo = 1:nStimuli
     end
 
     aziMain = [aziMain, ...
-        linspace(targetAzimuth,targetAzimuth,(targetITI*fs)*2)];
+        linspace(targetAzimuth,targetAzimuth,round((targetITI/updateRate))*2)];
+
+    ele = [ele, linspace(0,0,round((targetITI/updateRate))*2)];
 
     %% Concatenate the sound portions and spatialize the stimuli
     if targetTrials(stimNo) == 1
@@ -211,34 +217,26 @@ for stimNo = 1:nStimuli
         allPortions = [statOnset moving statOffset gap' gap'];
     end
 
-    [stim, aziActual, ~, rActual, ~] = local_SOFAspat(allPortions',Obj,aziMain,ele,rMain,EPS,PPS);
-
-    % Apply Gaussian window to smooth out the artefacts arising from HRTF
-    % switching points
-    windowDuration = 0.1; % Window duration in seconds
-    windowSize = round(fs * windowDuration); % Number of samples in the window: increase if insufficient, decrease if too aggressive smoothing
-    sigma = windowSize / 6; % Standard deviation of the Gaussian
-    gaussianWindow = gausswin(windowSize, sigma); % Create Gaussian window
-    gaussianWindow = gaussianWindow / sum(gaussianWindow); % Normalize
-    smoothLeft = conv(stim(:,1), gaussianWindow, 'same');
-    smoothRight = conv(stim(:,2), gaussianWindow, 'same');
-    smoothStim = [smoothLeft smoothRight]; 
-
-    % Save results to wav, add parameters to the cell array later saved out
-    % to csv
+    % Save as wav (BRT needs it)
     digits = ceil(log10(nStimuli + 1));
     stimulusdigits = ceil(log10(stimNo + 1));
     temp = char('');
     for digind = 1:(digits-stimulusdigits)
         temp = strcat(temp, '0');
     end
+    filename = fullfile(pwd, strcat(wavDir, '/', wavDir, '-', temp, num2str(stimNo)));
+    wavname = strcat(filename,'.wav');
+    audiowrite(wavname, int32(allPortions), fs);
+    savename = strcat(filename,'.mat');
 
-    filename = strcat(wavDir, '-', temp, num2str(stimNo));
+    % Spatialize with BRT
+    BRTspat(wavname,totalDur,aziMain,ele,rMain,savename,updateRate,u);
+
+    % Add parameters to cell array for later saving
     outCsv(stimNo+1, :) = {filename, frequency, totalDur, durStatOnset, durStatOffset,  rMoving(1), ...
         rMoving(2), trajectory, offsetAzimuth, targetTrials(stimNo), targetAzimuth, congruence(stimNo)};
-    % audiowrite(strcat('./', wavDir, '/', filename, '.wav'), smoothStim, fs);
-    save(strcat('./', wavDir, '/', filename, '.mat'), "smoothStim");
 
+    pause(1); % maybe then it crashes less often
 end % stimulus generation loop
 
 %% Save output
@@ -248,16 +246,11 @@ T = cell2table(outCsv(2:end, :), 'VariableNames', outCsv(1, :));
 % Write the table to a CSV file, final user message
 writetable(T,strcat('./', wavDir, '/', strcat(wavDir, '-', 'StimuliData.csv')));
 disp([newline, 'Task done, files and parameters are saved to directory ', wavDir, newline]);
+% 
+% % Delete unnecessary files
+% delete(wavname); % only BRT needed the wav
+% if ~strcmp(savename(end-5:end), '_4.mat')
+%     delete(savename);
+% end
 
 end % function
-
-% Include intensity ramp when spatializing with SOFAspat:
-function [out, aziActual, eleActual, rActual, idx] = local_SOFAspat(signal,Obj,azi,ele,r,EPS,PPS)
-if length(r)~=length(signal)
-    errorText = ['Signal (length: ', num2str(length(signal)), ') and r (length: ',...
-        num2str(length(r)),') need to have the same length!'];
-    error(errorText)
-end
-signal = db2mag(-100)*signal; % compensate for distance change from EPS to PPS and additional 65 dB to compensate for the particular type of HRTFs
-[out, aziActual, eleActual, rActual, idx] = SOFAspat(signal./r(:),Obj,azi,ele,r);
-end
