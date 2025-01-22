@@ -1,5 +1,5 @@
 function generateStimuli(nStimuli,trajectory)
-% Generate sound stimuli for wp1 pilot in three possible trajectories: looming,
+% Generate sound stimuli for wp1 pilot in four possible trajectories: looming,
 % receding, rotating near, rotating far
 %
 % Inputs:
@@ -44,6 +44,7 @@ mkdir(wavDir);
 PPS = 0.2;
 EPS = 2.0;
 v = 1; % velocity in m/s
+fs = 48e3;
 
 % Set values which have to be counterbalanced
 offsetAzimuthOptions = [...
@@ -54,13 +55,6 @@ targetTrials = [...
     ones(1,nStimuli/4), ...
     zeros(1,nStimuli/4), ...
     ones(1,nStimuli/4)]; % target or no target
-congruence = [...
-    zeros(1,nStimuli/4), ... % where targetTrials is 0
-    zeros(1,nStimuli/8), ...
-    ones(1,nStimuli/8), ...
-    zeros(1,nStimuli/4), ...
-    zeros(1,nStimuli/8), ...
-    ones(1,nStimuli/8)];
 
 %% Create a home for saved parameters
 outFields = {
@@ -74,27 +68,10 @@ outFields = {
     'trajectory', ...        % 1 - loom, 2 - rec, 3 - rotate near, 4 - rotate far
     'offsetAzimuth', ...     % Side of the cue (at offset): 90 - left, -90 - right
     'target', ...            % 1 - target trial, 0 - nontarget trial
-    'targetAzimuth', ...     % Side of the target: 90 - left, -90 - right               
-    'congruence', ...        % 1 - congruent target, 0 - incongruent target
     };
 
 outCsv = cell(nStimuli+1,length(outFields));
 outCsv(1,:) = outFields;
-
-%% Load HRTF dataset for the spatialization of targets
-if not(exist("SOFAdbPath.m","file"))
-sofaPath = '\\kfs\fileserver\ProjektDaten\CherISH\code\SOFAtoolbox\SOFAtoolbox';
-addpath(sofaPath);
-SOFAstart;
-    sofaPath = '\\kfs\fileserver\ProjektDaten\CherISH\code\SOFAtoolbox\SOFAtoolbox';
-    addpath(sofaPath);
-    SOFAstart;
-end
-database = 'sadie';
-HRTFfilename = '3DTI_HRTF_SADIE_II_D2_256s_48000Hz_resampled5.sofa';
-fullfn = fullfile(SOFAdbPath, 'database', database, HRTFfilename);
-Obj = SOFAload(fullfn);
-fs = Obj.Data.SamplingRate;
 
 %% Set connection between Matlab and BRT through OSC; set some settings
 u = pnet('udpsocket',10017); % Listen port in BRT
@@ -141,21 +118,22 @@ for stimNo = 1:nStimuli
     end
 
     %% Set durations
-    % Stationary portions: 600-900 ms with round 100 values, in s
-    durStatOnset = (randi(4,1)+5)/10; 
-    durStatOffset = (randi(4,1)+5)/10;
+    % Stationary portions: 600-800 ms with round 100 values, in s
+    buffer = 1; % 1 s buffer to cut later
+    durStatOnset = ((randi(4,1)+4)/10) + buffer; 
+    durStatOffset = ((randi(4,1)+4)/10) + buffer;
 
     % Moving portion: duration calculated from distance and velocity
     durMoving = abs(EPS-PPS)/v;
 
-    % Calculate total duration
+    % Calculate total duration WARNING should be done later prolly
     totalDur = durStatOnset+durMoving+durStatOffset; % in s
 
     updateRate = 2/1000; % every 2 ms
-    eleC = linspace(0,0,round(totalDur/updateRate));
+    ele = linspace(0,0,round(totalDur/updateRate));
 
     % Set trajectory vector based on the durations
-    rC = [linspace(rOnset(1), rOnset(2), round(durStatOnset/updateRate)), ...
+    r = [linspace(rOnset(1), rOnset(2), round(durStatOnset/updateRate)), ...
             linspace(rMoving(1), rMoving(2), round(durMoving/updateRate)), ...
             linspace(rOffset(1), rOffset(2), round(durStatOffset/updateRate))];
 
@@ -164,12 +142,12 @@ for stimNo = 1:nStimuli
 
     if trajectory <= 2 % looming or receding
         % aziMain = [offsetAzimuth offsetAzimuth];
-        aziC = [linspace(offsetAzimuth, offsetAzimuth, round(durStatOnset/updateRate)), ...
+        azi = [linspace(offsetAzimuth, offsetAzimuth, round(durStatOnset/updateRate)), ...
             linspace(offsetAzimuth, offsetAzimuth, round(durMoving/updateRate)), ...
             linspace(offsetAzimuth, offsetAzimuth, round(durStatOffset/updateRate))];
     elseif trajectory >= 3 % rotating near or far
         % aziMain = [0 offsetAzimuth];
-        aziC = [linspace(0, 0, round(durStatOnset/updateRate)), ...
+        azi = [linspace(0, 0, round(durStatOnset/updateRate)), ...
             linspace(0, offsetAzimuth, round(durMoving/updateRate)), ...
             linspace(offsetAzimuth, offsetAzimuth, round(durStatOffset/updateRate))];        
     end
@@ -181,13 +159,6 @@ for stimNo = 1:nStimuli
     tStatOffset = linspace(0,durStatOffset,durStatOffset*fs);
     statOffset  = square(2*pi*frequency*tStatOffset);
 
-    % Ramp the onset and the offset
-    rampSamples = round(fs*0.01);
-    rampOnset = sin(linspace(0,pi/2,rampSamples));
-    rampOffset = cos(linspace(0,pi/2,rampSamples));
-    statOnset(1:rampSamples) = statOnset(1:rampSamples)'.*rampOnset';
-    statOffset((end-rampSamples+1):end) = statOffset((end-rampSamples+1):end)'.*rampOffset';
-
     % Generate square waves for moving portion
     tMoving = linspace(0,durMoving,durMoving*fs);
     moving = square(2*pi*frequency*tMoving);
@@ -197,35 +168,19 @@ for stimNo = 1:nStimuli
     target = sin(2*pi*2400*(0:(1/fs):targetITI-1/fs)); % 100 ms, 2400 Hz
     gap = zeros(targetITI*fs,1);
 
-    % Ramp the target as well
+    % Ramp the target
+    rampSamples = round(fs*0.01);
+    rampOnset = sin(linspace(0,pi/2,rampSamples));
+    rampOffset = cos(linspace(0,pi/2,rampSamples));
     target(1:rampSamples) = target(1:rampSamples)'.*rampOnset';
     target((end-rampSamples+1):end) = target((end-rampSamples+1):end)'.*rampOffset';
-
-    % Spatialize target at the same distance where the cue ends
-    rTarget = rOffset;
-    rT = linspace(rTarget(1),rTarget(2),round((targetITI*fs))*2);
-
-    % Target azimuth is congruent (same as offset azimuth) half the time
-    % and incongruent (opposite of offset azimuth) half the time
-    if targetTrials(stimNo) == 1 % if it is a target trial
-        if congruence(stimNo) == 1
-            targetAzimuth = offsetAzimuth; 
-        else
-            targetAzimuth = -1*offsetAzimuth;
-        end
-    else
-        targetAzimuth = 0;
-    end
-
-    aziT = linspace(targetAzimuth,targetAzimuth,round((targetITI*fs))*2);
-    eleT = linspace(0,0,round((targetITI*fs))*2);    
 
     %% Concatenate the sound portions and spatialize the stimuli
     C = [statOnset moving statOffset]; % cue
     if targetTrials(stimNo) == 1
-        T = [gap' target]; 
+        T = [gap' target; gap' target]; % target
     else
-        T = [gap' gap'];
+        T = [gap' gap'; gap' gap'];
     end
 
     % Save as wav (BRT needs it)
@@ -238,21 +193,24 @@ for stimNo = 1:nStimuli
     filename = fullfile(pwd, strcat(wavDir, '/', wavDir, '-', temp, num2str(stimNo)));
     wavname = strcat(filename,'.wav');   
     audiowrite(wavname, C, fs); 
-    savenameC = strcat(filename,'.mat'); 
+    savename = strcat(filename,'.mat'); 
 
     % Spatialize cue with BRT
-    cueSpat = BRTspat(wavname,totalDur,aziC,eleC,rC,savenameC,updateRate,u);
+    cueSpat = BRTspat(wavname,totalDur,azi,ele,r,savename,updateRate,u);
 
-    % Spatialize target with SOFAspat
-    targetSpat = SOFAspat((T./rT(:)')',Obj,aziT,eleT,rT);
+    % Cut and apply Tukey window on the cue
+    cueSpat = cueSpat(:,(buffer*fs)+1:end-(buffer*fs)); % cut the 1 s buffer
+    win = tukeywin(size(cueSpat,2),(0.1*fs)/size(cueSpat,2)); % 0.1 s 
+    cueSpatWin = cueSpat.*repmat(win',2,1);
+    totalDur = length(cueSpatWin)/fs; % update total duration of cue
 
     % Concatenate
-    stim = [cueSpat targetSpat'];
+    stim = [cueSpatWin T];
     save(strcat(filename,'-full.mat'), "stim");
 
     % Add parameters to cell array for later saving
     outCsv(stimNo+1, :) = {filename, frequency, totalDur, durStatOnset, durStatOffset,  rMoving(1), ...
-        rMoving(2), trajectory, offsetAzimuth, targetTrials(stimNo), targetAzimuth, congruence(stimNo)};
+        rMoving(2), trajectory, offsetAzimuth, targetTrials(stimNo)};
 
     pause(2); % maybe then BRT crashes less often
     clc;
@@ -273,8 +231,8 @@ for del = 3:nFile
     name = dirFile(del).name;
     if contains(name, '.wav')
         delete(strcat(pwd,'/',wavDir,'/',name)); % wavs were only needed by BRT
-    elseif contains(name, '.mat') && ~contains(name, '-full.mat')
-        delete(strcat(pwd,'/',wavDir,'/',name)); % first iterations were dummies (but don't delete the .csv)
+    % elseif contains(name, '.mat') && ~contains(name, '-full.mat')
+    %     delete(strcat(pwd,'/',wavDir,'/',name)); % first iterations were dummies (but don't delete the .csv)
     end
 end % deleting unnecessary files
 
