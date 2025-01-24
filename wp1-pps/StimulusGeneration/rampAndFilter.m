@@ -10,13 +10,13 @@ if not(exist("SOFAdbPath.m","file"))
     addpath(sofaPath);
     SOFAstart;
 end
-database = 'scut';
-HRTFfilename = 'SCUT_KEMAR_radius_all.sofa';
+database = 'ari';
+HRTFfilename = 'Kemar_HRTF_sofa_interpolated.sofa';
 fullfn = fullfile(SOFAdbPath, 'database', database, HRTFfilename);
 Obj = SOFAload(fullfn);
 fs = Obj.Data.SamplingRate;
 
-savename = ['sample',num2str(trajectory),'_',num2str(offsetAzimuth),'_tri.mat'];
+savename = ['sample',num2str(trajectory),'_',num2str(offsetAzimuth),'.mat'];
 
 PPS = 0.2;
 EPS = 2.0;
@@ -78,21 +78,16 @@ frequency = (randi(4,1)+5)*100; % 600-900 Hz with round 100 values
             linspace(offsetAzimuth, offsetAzimuth, round(durStatOffset*fs))];        
     end
 
-    %% Generate square waves for each portion
+    %% Generate triangle waves for each portion
     % Generate square waves for stationary portions
-    tStatOnset = linspace(0,durStatOnset,durStatOnset*fs);
-    statOnset = square(2*pi*frequency*tStatOnset);
+    tStatOnset = linspace(0,durStatOnset,durStatOnset*fs); % Time vector from 0 to dur with sampling interval 1/fs
+    statOnset = sawtooth(2 * pi * frequency * tStatOnset, 0.5); % 0.5 for a symmetric triangular wave
     tStatOffset = linspace(0,durStatOffset,durStatOffset*fs);
-    statOffset  = square(2*pi*frequency*tStatOffset);
+    statOffset  = sawtooth(2 * pi * frequency * tStatOffset, 0.5);
 
     % Generate square waves for moving portion
     tMoving = linspace(0,durMoving,durMoving*fs);
-    moving = square(2*pi*frequency*tMoving);
-
-    %% Alternatively, generate triangle wave
-    statOnsetTri = sig_triwave(frequency,fs,durStatOnset);
-    statOffsetTri = sig_triwave(frequency,fs,durStatOffset);
-    movingTri = sig_triwave(frequency,fs,durMoving);
+    moving = sawtooth(2 * pi * frequency * tMoving, 0.5);
 
     %% Generate targets
     targetITI = 0.1; % 100 ms
@@ -107,10 +102,9 @@ frequency = (randi(4,1)+5)*100; % 600-900 Hz with round 100 values
     target((end-rampSamples+1):end) = target((end-rampSamples+1):end)'.*rampOffset';
 
     %% Concatenate the sound portions and spatialize the stimuli
-    % C = [statOnset moving statOffset]; % cue
-    % win = tukeywin(size(C,2),(0.1*fs)/size(C,2)); % 0.1 s on-offset ramp
-    % C = C.*win';
-    C = [statOnsetTri movingTri statOffsetTri];
+    C = [statOnset moving statOffset]; % cue
+    win = tukeywin(size(C,2),(0.1*fs)/size(C,2)); % 0.1 s on-offset ramp
+    C = C.*win';
 
     % if targetTrials(stimNo) == 1
         T = [gap' target; gap' target]; % target
@@ -119,6 +113,13 @@ frequency = (randi(4,1)+5)*100; % 600-900 Hz with round 100 values
     % end
 
     cue = local_SOFAspat(C',Obj,azi,ele,r);
+    if trajectory < 4
+        dbChange = 20 * log10(1 / max(cue,[],"all")); % scale to [-1,1]
+ 
+    else
+        dbChange = 20 * log10(0.1 / max(cue,[],"all")); % scale to [-0.1,0.1] because it's far
+    end
+    cue = db2mag(dbChange)*cue;
 
     scalestimT = [cue' T];
     save(savename, "scalestimT");
@@ -131,6 +132,5 @@ if length(r)~=length(signal)
         num2str(length(r)),') need to have the same length!'];
     error(errorText)
 end
-signal = db2mag(-20)*signal; % scale to [-1,1]
 [out, aziActual, eleActual, rActual, idx] = SOFAspat(signal./r(:),Obj,azi,ele,r);
 end
