@@ -4,7 +4,7 @@ function generateStimuli(nStimuli,trajectory)
 %
 % Inputs:
 % nStimuli      - integer, number of stimuli to generate in the given trajectory
-%                 (usually 120; has to be divisible by 8 for counterbalancing)
+%                 (has to be divisible by 8 for counterbalancing)
 % trajectory    - 1: looming, 2: receding, 3: rotating near, 4: rotating
 %                 far
 %
@@ -18,14 +18,21 @@ function generateStimuli(nStimuli,trajectory)
 disp(['The BRT Renderer App should be open for this. If it isn''t, ', newline,...
     'it''s not too late to press Ctrl + C and rethink your life.',newline]);
 
-if mod(nStimuli,8) ~= 0
-    error(['nStimuli has to be divisible by 8 to allow to counterbalance some parameters.', ...
-        ' Try 8 for debugging or 120 for a typical batch of stimuli.'])
+if mod(nStimuli,4) ~= 0
+    error(['nStimuli has to be divisible by 4 to allow to counterbalance some parameters.', ...
+        ' Try 4 for debugging or 120 for a typical batch of stimuli.'])
 elseif trajectory > 4
     error('trajectory has to be an integer between 1 and 4');
 end
 
-% Create directory for saving audio data + parameters files
+%% Initialize AMT 
+if ~exist("amt_start.m","file")
+    amtPath = '\\KFS\Fileserver\ProjektDaten\CherISH\code\amtoolbox-full-1.4.0';
+    addpath(amtPath);
+    amt_start;
+end
+
+%% Create directory for saving audio data + parameters files
 c = clock;  %#ok<CLOCK> % dir name based on current time
 wavDir = strcat(date, '-', num2str(c(4)), num2str(c(5))); %#ok<DATE>
 dircount = 0;
@@ -198,15 +205,27 @@ for stimNo = 1:nStimuli
     % Spatialize cue with BRT
     cueSpat = BRTspat(wavname,totalDur,azi,ele,r,savename,updateRate,u);
 
-    % Cut and apply Tukey window on the cue
+    % Cut off the onset and offset artefacts introduced by BRT during recording; apply Tukey window on the cue
     cueSpat = cueSpat(:,(buffer*fs)+1:end-(buffer*fs)); % cut the 1 s buffer
-    win = tukeywin(size(cueSpat,2),(0.1*fs)/size(cueSpat,2)); % 0.1 s 
+    win = tukeywin(size(cueSpat,2),(0.1*fs)/size(cueSpat,2)); % 0.1 s on-offset ramp
     cueSpatWin = cueSpat.*repmat(win',2,1);
-    totalDur = length(cueSpatWin)/fs; % update total duration of cue
 
-    % Concatenate
-    stim = [cueSpatWin T];
-    save(strcat(filename,'-full.mat'), "stim");
+    % Update duration data to exclude buffer
+    totalDur = length(cueSpatWin)/fs; % update total duration of cue
+    durStatOnset = durStatOnset-buffer;
+    durStatOffset = durStatOffset-buffer;
+
+    % Concatenate and scale the intensities
+    if trajectory < 4
+        scaledb = 20 * log10(1 / max(cueSpatWin,[],"all")); 
+    else
+        scaledb = 20 * log10(0.1 / max(cueSpatWin,[],"all")); 
+    end
+    scalestim1 = scaletodbspl(cueSpatWin(1,:)',dbspl(cueSpatWin(1,:)')+scaledb);
+    scalestim2 = scaletodbspl(cueSpatWin(2,:)',dbspl(cueSpatWin(2,:)')+scaledb);
+    scalestim = [scalestim1 scalestim2];
+    scalestimT = [scalestim' T];
+    save(strcat(filename,'-full.mat'), "scalestimT");
 
     % Add parameters to cell array for later saving
     outCsv(stimNo+1, :) = {filename, frequency, totalDur, durStatOnset, durStatOffset,  rMoving(1), ...
@@ -231,8 +250,8 @@ for del = 3:nFile
     name = dirFile(del).name;
     if contains(name, '.wav')
         delete(strcat(pwd,'/',wavDir,'/',name)); % wavs were only needed by BRT
-    % elseif contains(name, '.mat') && ~contains(name, '-full.mat')
-    %     delete(strcat(pwd,'/',wavDir,'/',name)); % first iterations were dummies (but don't delete the .csv)
+    elseif contains(name, '.mat') && ~contains(name, '-full.mat')
+        delete(strcat(pwd,'/',wavDir,'/',name)); % cue-only file not needed (but don't delete the .csv)
     end
 end % deleting unnecessary files
 
