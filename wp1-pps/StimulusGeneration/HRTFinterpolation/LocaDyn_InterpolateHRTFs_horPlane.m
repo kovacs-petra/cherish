@@ -122,20 +122,22 @@ T = freeBoundary(delaunayTriangulation(P));
 %   axis equal
 %   view(75,10);
 % end
+% new.azi = 0:azires:360-azires;
+% new.ele = zeros(size(new.azi));
+% new.r = r(1).*ones(size(new.azi));
 distances = [0.2,2];
-new.azi = repmat(0:azires:360-azires,1,length(distances)); %no. unique values in r x 1
+new.azi = repmat(0:azires:360-azires,1,length(distances));
 new.ele = zeros(size(new.azi));
 new.r = repmat(distances,1,length(new.azi)/length(distances));
-[new.x,new.y,new.z]=sph2cart(new.azi,new.ele,new.r);
+[new.x,new.y,new.z]=sph2cart(deg2rad(new.azi),deg2rad(new.ele),new.r);
 Pnew=[new.x;new.y;new.z]';
-
+% [a,e,r]=cart2sph(Pnew(:,1),Pnew(:,2),Pnew(:,3)); to double check the transformation
 
 
 %% Define target grid
 Xnew=Xsp;
 Xnew.Data.IR=zeros(length(Pnew),Xsp.API.R,Xsp.API.N); 
-[a,e,r]=cart2sph(Pnew(:,1),Pnew(:,2),Pnew(:,3));
-Xnew.SourcePosition=[mod(rad2deg(a)+360,360), rad2deg(e), r];
+Xnew.SourcePosition=[new.azi(:), new.ele(:), new.r(:)];
 MInspect=NaN; % stop at MInspect measurement for inspection
 tic
 for ii=1:length(Pnew)  
