@@ -1,12 +1,11 @@
 function practiceMe
 % Familiarization phase for CherISH wp1 pilot
+% The listener practices target detection, and especially distance judgements.
 
-% The listener can request stationary sounds spatialized at a chosen distance category
-% (PPS, ARS, EPS).
-
-% Problems:
-% When 1 m comes after 3 m: sound is much softer
-% Same 1 m distance presented with 0.9 m: sound is loud, sounds like PPS
+% Feedback: accurate or inaccurate distance judgement; RT of target
+% detection
+% Should happen at the beginning of each run (when sounds go back from loud
+% to soft), not in a separate script
 
 %% Find and load stimArray file
 stimArrayFileStruct = dir('stimArrayPractice.mat');
@@ -71,6 +70,7 @@ disp([char(10), 'Set audio parameters']);
 keys = struct;
 keys.abort = KbName('ESCAPE');
 keys.go = KbName('SPACE');
+keys.respTarget = KbName('RETURN');
 keys.respDistancePPS = KbName('1');
 keys.respDistanceARS = KbName('2');
 keys.respDistanceEPS = KbName('3');
