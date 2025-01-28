@@ -37,7 +37,8 @@ Xint.SourcePosition=[Xhorint.SourcePosition; Xradint.SourcePosition];
 Xint = SOFAupdateDimensions(Xint);
 
 %% Plot original and interpolated HRTFs
-% Xall = [Xhor,Xint];
+Xall = [Xhor,Xint];
+% fs = Xall.Data.SamplingRate;
 % for xx = 1: length(Xall)
 % for R = 1:2
 %   fs = Xall(xx).Data.SamplingRate;
@@ -72,12 +73,12 @@ Xint = SOFAupdateDimensions(Xint);
 
 %% Listening example
 sig = sig_triwave(400,fs,3);
-% traj.r = linspace(0.2,0.2,length(sig));
-traj.r = [linspace(0.2,0.2,length(traj.r)/3),...
-    linspace(0.2,2,length(traj.r)/3), linspace(2,2,length(traj.r)/3)];
-traj.azi = -90*ones(length(traj.r),1);
-% traj.azi = [linspace(1,1,length(traj.r)/3),...
-%     linspace(1,89,length(traj.r)/3), linspace(89,89,length(traj.r)/3)];
+traj.r = linspace(0.2,0.2,length(sig));
+% traj.r = [linspace(0.2,0.2,length(traj.r)/3),...
+%     linspace(0.2,2,length(traj.r)/3), linspace(2,2,length(traj.r)/3)];
+% traj.azi = -90*ones(length(traj.r),1);
+traj.azi = [linspace(0,0,length(traj.r)/3),...
+    linspace(0,90,length(traj.r)/3), linspace(90,90,length(traj.r)/3)];
 traj.ele = ele*ones(length(traj.r),1);
 [out, aziActual, eleActual, rActual, idx] = SOFAspat((sig./traj.r)',Xint,traj.azi,traj.ele,traj.r);
 soundsc(out,fs)

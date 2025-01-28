@@ -122,13 +122,14 @@ T = freeBoundary(delaunayTriangulation(P));
 %   axis equal
 %   view(75,10);
 % end
-% new.azi = 0:azires:360-azires;
-% new.ele = zeros(size(new.azi));
-% new.r = r(1).*ones(size(new.azi));
-distances = [0.2,2];
-new.azi = repmat(0:azires:360-azires,1,length(distances));
+new.azi = 0:azires:360-azires;
 new.ele = zeros(size(new.azi));
-new.r = repmat(distances,1,length(new.azi)/length(distances));
+new.r = r(1).*ones(size(new.azi));
+% distances = [0.2,2];
+% new.azi = repmat(0:azires:360-azires,1,length(distances));
+% new.ele = zeros(size(new.azi));
+% new.r = [repmat(distances(1),1,length(new.azi)/length(distances)),...
+%     repmat(distances(2),1,length(new.azi)/length(distances))]; 
 [new.x,new.y,new.z]=sph2cart(deg2rad(new.azi),deg2rad(new.ele),new.r);
 Pnew=[new.x;new.y;new.z]';
 % [a,e,r]=cart2sph(Pnew(:,1),Pnew(:,2),Pnew(:,3)); to double check the transformation
