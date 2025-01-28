@@ -2,8 +2,12 @@ function pilotMe(subNum, noBlocks, triggers)
 % Experimental script for CherISH wp-1 pilot
 % Adapted (-ing) from SFGmain.m
 
+    % init PsychPortAudio with pushing for lowest possible latency
+    InitializePsychSound(1);
+
+% try 
 %% Input checks
-% Determine task from subject number (odd Ss start with task 1, evens with
+% Determine task from subject number (even Ss start with task 1, odds with
 % task 2)
 if mod(subNum,2) == 0
     taskOrder = [1,2];
@@ -44,28 +48,29 @@ for taskIdx = 1:2
     % Collect column numbers from the resulting stimArray
     %%%%%%% HARD-CODED VALUES %%%%%%%
     targetColumn = 10;
-    audioColumn = 13;
-    stimTypeColumn = 16;
+    audioColumn = 11;
+    stimTypeColumn = 12;
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
     % Get sampling rate from the hrtf file that was used for stimulus
     % generation
-    if not(exist("SOFAdbPath.m","file"))
-        sofaPath = '\\kfs\fileserver\ProjektDaten\CherISH\code\SOFAtoolbox\SOFAtoolbox';
-        addpath(sofaPath);
-        SOFAstart;
-    end
-    database = 'scut';
-    HRTFfilename = 'SCUT_KEMAR_radius_all.sofa';
-    fullfn = fullfile(SOFAdbPath, 'database', database, HRTFfilename);
-    Obj = SOFAload(fullfn);
-    fs = Obj.Data.SamplingRate;
+    % if not(exist("SOFAdbPath.m","file"))
+    %     sofaPath = '\\kfs\fileserver\ProjektDaten\CherISH\code\SOFAtoolbox\SOFAtoolbox';
+    %     addpath(sofaPath);
+    %     SOFAstart;
+    % end
+    % database = 'scut';
+    % HRTFfilename = 'SCUT_KEMAR_radius_all.sofa';
+    % fullfn = fullfile(SOFAdbPath, 'database', database, HRTFfilename);
+    % Obj = SOFAload(fullfn);
+    fs = 48000;
 
     % user message
     disp([char(10), 'Ready to start the experiment']);
 
     %% Stimulus features for triggers + logging
-    totalDur = cell2mat(logVar(2:end, strcmp(logHeader, 'totalDur')));
+    totalDurCue = cell2mat(logVar(2:end, strcmp(logHeader, 'totalDur'))); % duration of cue (w/o target or gap)
+    totalDurWithTarget = totalDurCue + 2/1000;
     durStatOnset = cell2mat(logVar(2:end, strcmp(logHeader, 'durStatOnset'))); % required for EEG triggering
     durStatOffset = cell2mat(logVar(2:end, strcmp(logHeader, 'durStatOffset'))); % for EEG triggering
 
@@ -106,10 +111,8 @@ for taskIdx = 1:2
 
     %% Psychtoolbox initialization
     % General init (AssertOpenGL, 'UnifyKeyNames')
-    PsychDefaultSetup(1);
+    PsychDefaultSetup(1); Screen('Preference', 'SkipSyncTests', 1);
 
-    % init PsychPortAudio with pushing for lowest possible latency
-    InitializePsychSound(1);
     %% Audio parameters for PsychPortAudio
     % Select audio device: this is where I could use o_ptb
     % device = [];  % system default is our default as well
@@ -183,8 +186,9 @@ for taskIdx = 1:2
         lineWidthPix, textColor, [xCenter yCenter], 2);
 
     % open PsychPortAudio device for playback
-    pahandle = PsychPortAudio('Open', device, mode, reqLatencyClass, fs, nrChannels);
-
+    if ~exist('pahandle', 'var')
+        pahandle = PsychPortAudio('Open', device, mode, reqLatencyClass, fs, nrChannels);
+    end
     % get and display device status
     pahandleStatus = PsychPortAudio('GetStatus', pahandle);
     disp([char(10), 'PsychPortAudio device status: ']);
@@ -197,11 +201,11 @@ for taskIdx = 1:2
     PsychPortAudio('Start', pahandle, 1);  % start immediately
     PsychPortAudio('Stop', pahandle, 1);  % stop when playback is over
 
-    % set random ITI between 500-800 ms, with round 100 ms values
-    iti = (randi(4, [size(stimArray, 1) 1])+4)/10;  % in secs
+    % set ITI 
+    iti = 2;  % in secs
 
     % response time interval
-    respInt = 1 + iti; % in secs
+    respInt = 1; 
 
     % response variables preallocation
     respTime = nan(size(stimArray, 1), 1);
@@ -218,7 +222,9 @@ for taskIdx = 1:2
 
     if triggers
         % init serial port control
-        TB = IOPort('OpenSerialPort', 'COM3'); % replace with number of COM port % test
+        if ~exist(TB, 'var')
+            TB = IOPort('OpenSerialPort', 'COM3'); % replace with number of COM port % test
+        end
 
         % Read data from the TriggerBox
         Available = IOPort('BytesAvailable', TB);
@@ -241,7 +247,7 @@ for taskIdx = 1:2
             'After some of these sounds, you will sometimes hear a brief target sound. \n\n',...
             'Detect the target sound as quickly and accurately as possible: press ENTER if you heard it. \n',...
             'Don''t press anything if you didn''t hear the target sound. \n\n',...
-            'Press SPACE to continue.'];
+            '<Press SPACE to continue>'];
 
     % write instructions to text
     Screen('FillRect', win, backGroundColor);
@@ -254,7 +260,6 @@ for taskIdx = 1:2
     % wait for key press to start
     while 1
         [keyIsDown, ~, keyCode] = KbCheck;
-
         if keyIsDown
             % if subject is ready to start
             if find(keyCode) == keys.go
@@ -287,7 +292,7 @@ for taskIdx = 1:2
 
     %% Blocks loop
 
-    SPLoptions = [-40 -30 -25 -40];
+    SPLoptions = [-20 -33 -30 -30];
     SPLidx = 1; % changes in the next block
     SPL = SPLoptions(SPLidx);
 
@@ -310,7 +315,7 @@ for taskIdx = 1:2
             audioData = stimArray{trial, audioColumn};
             % Intensity roving:
             audioData = 10^(SPL/20)*audioData;
-            buffer(end+1) = PsychPortAudio('CreateBuffer', [], audioData');
+            buffer(end+1) = PsychPortAudio('CreateBuffer', [], audioData);
         end
 
         % counter for trials in given block
@@ -321,16 +326,9 @@ for taskIdx = 1:2
             ', showing block start message']);
 
         % block starting text
-        if block == 1
-            blockStartText = ['Beginning block ', num2str(block), '. \n\n',...
-                'As always in this round, there will be ', num2str(length(trialList)), ' trials in the block.\n\n\n',...
-                'Press SPACE to begin!'];
-        else
-            blockStartText = ['Beginning block ', num2str(block), '. \n\n',...
-                'All sounds will be louder than before! \n\n',...
-                'As always in this round, there will be ', num2str(length(trialList)), ' trials in the block.\n\n\n',...
-                'Press SPACE to begin!'];
-        end
+        blockStartText = ['Beginning block ', num2str(block), '. \n\n',...
+            'As always in this round, there will be ', num2str(length(trialList)), ' trials in the block.\n\n\n',...
+            'Ready? Press SPACE to begin.'];
 
         % uniform background
         Screen('FillRect', win, backGroundColor);
@@ -408,12 +406,12 @@ for taskIdx = 1:2
             PsychPortAudio('FillBuffer', pahandle, buffer(trialCounterForBlock));
 
             % wait till we are 100 ms from the start of the playback
-            while GetSecs-trialStart <= iti(trial)-100
+            while GetSecs-trialStart <= iti-100
                 WaitSecs(0.001);
             end
 
             % blocking playback start for precision
-            startTime = PsychPortAudio('Start', pahandle, 1, trialStart+iti(trial), 1);
+            startTime = PsychPortAudio('Start', pahandle, 1, trialStart+iti, 1);
 
             if triggers
                 % playback start trigger
@@ -441,7 +439,7 @@ for taskIdx = 1:2
                 
                 % motion offset trigger
                 while 1
-                    if GetSecs == startTime + totalDur(trial) - durStatOffset(trial)
+                    if GetSecs == startTime + totalDurCue(trial) - durStatOffset(trial)
                         IOPort('Write', TB, uint8(trig.motionOffset),0);
                         pause(0.01);
                         IOPort('Write', TB, uint8(0),0);
@@ -453,12 +451,12 @@ for taskIdx = 1:2
 
             % user message
             disp(['Audio started at ', num2str(startTime-trialStart), ' secs after trial start']);
-            disp(['(Target ITI was ', num2str(iti(trial)), ' secs)']);
+            disp(['(Target ITI was ', num2str(iti), ' secs)']);
 
             % Wait for response 1 (target detection)
             respFlag = 0;
 
-            while GetSecs <= startTime+totalDur(trial)+respInt
+            while GetSecs <= startTime+totalDurWithTarget(trial)+respInt
                 [keyIsDown, respSecs, keyCode] = KbCheck;
                 if keyIsDown % if subject responded
                     if find(keyCode) == keys.respTarget % and it was the detection button
@@ -504,11 +502,11 @@ for taskIdx = 1:2
             end
 
             % switch visual right when the audio finishes
-            Screen('Flip', win, startTime+totalDur(trial)-0.5*ifi);
+            % Screen('Flip', win, startTime+totalDurWithTarget(trial)-0.5*ifi);
 
             % response time into results variable
             if respFlag
-                    respTime(trial) = 1000*(respSecs-(startTime+totalDur(trial)));
+                    respTime(trial) = 1000*(respSecs-(startTime+totalDurWithTarget(trial)));
             end
 
             % user messages
@@ -547,7 +545,7 @@ for taskIdx = 1:2
             % block ending text
             blockEndText = ['End of block ', num2str(block), '! \n\n\n',...
                 'Your average reaction time in this block was ',num2str(round(blockRT, 2)), ' ms. \n\n\n',...
-                'Press SPACE to begin next block!'];
+                'Press SPACE to begin next block.'];
             % uniform background
             Screen('FillRect', win, backGroundColor);
             % draw block-starting text
@@ -609,6 +607,17 @@ for taskIdx = 1:2
 
 end % task for loop
 
+% catch
+%     if triggers
+%     % ppdev_mex('Close', 1);
+%     IOPort('Close',TB);
+%     end
+%     ListenChar(0);
+%     Priority(0);
+%     RestrictKeysForKbCheck([]);
+%     PsychPortAudio('Close');
+%     Screen('CloseAll');
+%     ShowCursor;
 
 %% Ending, cleaning up
 if triggers
@@ -620,7 +629,7 @@ Priority(0);
 RestrictKeysForKbCheck([]);
 PsychPortAudio('Close');
 Screen('CloseAll');
-ShowCursor(screenNumber);
+ShowCursor;
 
 return
 end

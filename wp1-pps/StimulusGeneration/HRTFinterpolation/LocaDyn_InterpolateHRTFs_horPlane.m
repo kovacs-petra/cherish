@@ -122,9 +122,10 @@ T = freeBoundary(delaunayTriangulation(P));
 %   axis equal
 %   view(75,10);
 % end
-new.azi = 0:azires:360-azires;
+distances = [0.2,2];
+new.azi = repmat(0:azires:360-azires,1,length(distances)); %no. unique values in r x 1
 new.ele = zeros(size(new.azi));
-new.r = r(1).*ones(size(new.azi));
+new.r = repmat(distances,1,length(new.azi)/length(distances));
 [new.x,new.y,new.z]=sph2cart(new.azi,new.ele,new.r);
 Pnew=[new.x;new.y;new.z]';
 

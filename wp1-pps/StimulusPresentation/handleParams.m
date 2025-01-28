@@ -1,7 +1,7 @@
 function [stimArray, sortIndices, startTrialNo,... 
     startBlockNo, blockIdx, trialIdx,...
     logVar, subLogF, returnFlag, logHeader,...
-    stimTypes] = handleParams(subNum, stimArrayFile, noBlocks)
+    stimTypes] = handleParams(subNum, stimArrayFile, noBlocks, task)
 %% Function handling parameters/settings, stimuli and conflicts
 %
 % USAGE: [stimArray, sortIndices, startTrialNo,... 
@@ -95,9 +95,9 @@ stimArray = []; sortIndices = []; stimTypes = [];
 % subject folder name
 dirN = ['subject', num2str(subNum)];
 % subject parameters/settings file
-subParamsF = [dirN, '/sub', num2str(subNum), 'Params.mat'];
+subParamsF = [dirN, '/sub', num2str(subNum), 'Params', num2str(task), '.mat'];
 % subject log file
-subLogF = [dirN, '/sub', num2str(subNum), 'Log.mat'];
+subLogF = [dirN, '/sub', num2str(subNum), 'Log', num2str(task), '.mat'];
 % date and time of starting with a subject
 c = clock; d = date; %#ok<*DATE,*CLOCK>
 timestamp = {[d, '-', num2str(c(4)), num2str(c(5))]};
@@ -108,8 +108,7 @@ logFileFlag = 0;
 % log header - needed for sanity check as well
 logHeader = {'subNum', 'blockNo', 'trialNo', 'trajectory', ... 
     'onsetDistance','offsetDistance', 'SPL', 'totalDur', 'durStatOnset', ...
-    'durStatOffset', 'offsetAzimuth', 'target', 'targetAzimuth', 'congruence',...
-    'accuracy', 'respTime', 'trigger'};
+    'durStatOffset', 'offsetAzimuth', 'target', 'accuracy', 'respTime', 'trigger'};
 
 % check if subject folder already exists
 if exist(dirN, 'dir')
@@ -245,7 +244,7 @@ disp([char(10), 'Loaded stimuli and saved out parameters/settings into params fi
 % attach stimulus type indices, block and trial indices to stimulus
 % array - but first a quick sanity check of stimArray size
 %%%%%% HARD-CODED VALUE %%%%%%
-cols = 13;
+cols = 11;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 if ~isequal(size(stimArray), [length(trialIdx), cols])
@@ -270,8 +269,8 @@ if ~logFileFlag
 
     % insert known columns in advance
     logVar(2:end, strcmp(logHeader, 'subNum'))          = num2cell(repmat(subNum, [size(stimArray, 1), 1]));  % subNum
-    logVar(2:end, strcmp(logHeader, 'blockNo'))         = stimArray(:, 15);
-    logVar(2:end, strcmp(logHeader, 'trialNo'))         = stimArray(:, 16); 
+    logVar(2:end, strcmp(logHeader, 'blockNo'))         = stimArray(:, 13);
+    logVar(2:end, strcmp(logHeader, 'trialNo'))         = stimArray(:, 14); 
     logVar(2:end, strcmp(logHeader, 'trajectory'))      = stimArray(:, 8);  
     logVar(2:end, strcmp(logHeader, 'onsetDistance'))   = stimArray(:, 6);   
     logVar(2:end, strcmp(logHeader, 'offsetDistance'))  = stimArray(:, 7);
@@ -280,8 +279,6 @@ if ~logFileFlag
     logVar(2:end, strcmp(logHeader, 'durStatOffset'))   = stimArray(:, 5);
     logVar(2:end, strcmp(logHeader, 'offsetAzimuth'))   = stimArray(:, 9);
     logVar(2:end, strcmp(logHeader, 'target'))          = stimArray(:, 10);
-    logVar(2:end, strcmp(logHeader, 'targetAzimuth'))   = stimArray(:, 11);
-    logVar(2:end, strcmp(logHeader, 'congruence'))      = stimArray(:, 12);
 end
 
 %% Find correct start point if there was a valid logging file
