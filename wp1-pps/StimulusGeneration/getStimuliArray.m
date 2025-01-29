@@ -1,5 +1,5 @@
 function stimArray = getStimuliArray(conditions)
-%% Function to summarize CherISH pilot stimuli (blocks 1-2) into one big stimuli mat file
+% Function to summarize CherISH pilot stimuli into one big stimuli mat file
 %
 % USAGE: stimArray = getStimuliArray(folders)
 %
@@ -25,18 +25,11 @@ function stimArray = getStimuliArray(conditions)
 
 %% Input check
 if conditions == 1
-    folders = {'13-Jan-2025-1327','13-Jan-2025-1327_1'}; % task 1
+    folders = {'23-Jan-2025-1411','23-Jan-2025-1412'}; % task 1, loom and rec
 else
-    folders = {'13-Jan-2025-1327_2','13-Jan-2025-1327_3'}; % task 2
+    folders = {'23-Jan-2025-1336','23-Jan-2025-1346'}; % task 2, near and far
 end
 
-% if input is string, put it into cell
-if ischar(folders)
-    if ~exist(folders, 'dir')
-        error('Could not find target folder (input arg)! If there are multiple folders, supply them as a cell array');
-    end
-    folders = {folders};
-end
 % check for existence of folders
 if iscell(folders)
     for i = 1:length(folders)
@@ -67,12 +60,11 @@ paramFields = {
     'trajectory', ...        % 1 - loom, 2 - rec, 3 - rotate near, 4 - rotate far
     'offsetAzimuth', ...     % Side of the cue (at offset): 90 - left, -90 - right
     'target', ...            % 1 - target trial, 0 - nontarget trial
-    'targetAzimuth', ...     % Side of the target: 90 - left, -90 - right               
-    'congruence', ...        % 1 - congruent target, 0 - incongruent target
 };
 
 % output variable collecting stimuli sets
 stimArray = cell(length(folders), 1);
+repeat = 5; % repeat each stimulus in the stimArray
 
 for f = 1:length(folders)    
     disp([char(10), 'Loading params and audio from: ', folders{f}]);
@@ -91,19 +83,23 @@ for f = 1:length(folders)
     end
 
     % load first audio to get audio size
-    audioF = [folders{f}, '/', myCell{1, 1}, '.wav'];
-    [data, ~] = audioread(audioF);
+    % audioF = [folders{f}, '/', myCell{1, 1}, '.mat'];
+    audioF = [myCell{1, 1}, '-full.mat'];
+    % [data, ~] = audioread(audioF);
+    load(audioF, 'scalestimT');
     
     % preallocate all memory we need to include the audio as well (add
     % extra column for raw audio data)
-    myCell = [myCell, repmat({zeros(size(data))}, size(myCell, 1), 1)];    
+    myCell = [myCell, repmat({zeros(size(scalestimT))}, size(myCell, 1), 1)];    
+    myCell = [myCell; repmat(myCell,repeat,1)];
     
-    %% Loop through audio files    
-    for audio = 1:size(myCell, 1)        
+    %% Loop through mat files containing audio data   
+    for audio = 1:size(myCell, 1)
         % load audio into cell array
-        audioF = [folders{f}, '/', myCell{audio, 1}, '.wav'];
-        [myCell{audio, length(paramFields)+1}, ~] = audioread(audioF);           
-    
+        audioF = [myCell{audio, 1}, '-full.mat'];
+        load(audioF, 'scalestimT');
+        myCell{audio, length(paramFields)+1} = scalestimT;
+
     end  % audio files for loop
 
     % accumulate all data into final 
