@@ -1,5 +1,5 @@
-function [Xrec, TOAcheck] = LocaDyn_InterpolateHRTFs_horPlane(X,azires,TOAremoval,fig)
-% function Xrec = LocaDyn_InterpolateHRTFs_horPlane(X,TOAremoval,fig)
+function [Xrec, TOAcheck] = LocaDyn_InterpolateHRTFs_horPlane(X,azires,ele,radius,TOAremoval,fig)
+% function Xrec = LocaDyn_InterpolateHRTFs_horPlane(X,azires,ele,radius,TOAremoval,fig)
 %
 %  interpolating HRTFs to a denser grid on the horizontal plane.
 %  TOA estimation % Based on TOA Model (Ziegelwanger and Majdak, 2014)
@@ -14,6 +14,7 @@ function [Xrec, TOAcheck] = LocaDyn_InterpolateHRTFs_horPlane(X,azires,TOAremova
 %
 %  #Author: Piotr Majdak, original function name LocaDyn_InterpolateHRTFs (01.2022)
 %  #Author: Robert Baumgartner: only horizontal plane for Dynamtes (11.2022)
+%  #Author: Robert Baumgartner: expanded to select target elevation and radius for CherISH (01.2025)
 
  if ~exist('fig','var')
      % third parameter does not exist, so default it to something
@@ -108,11 +109,10 @@ Xsp.API.M=X.API.M+1;
 Xsp=SOFAupdateDimensions(Xsp);
 
 %% Define to be interpolated positions -> horizontal plane
-azi=Xsp.SourcePosition(:,1);
-ele=Xsp.SourcePosition(:,2);
-r=Xsp.SourcePosition(:,3);
-[x,y,z]=sph2cart(deg2rad(azi),deg2rad(ele),r);
-rmean=mean(r);
+orig.azi=Xsp.SourcePosition(:,1);
+orig.ele=Xsp.SourcePosition(:,2);
+orig.r=Xsp.SourcePosition(:,3);
+[x,y,z]=sph2cart(deg2rad(orig.azi),deg2rad(orig.ele),orig.r);
 P=[x y z];
 T = freeBoundary(delaunayTriangulation(P));
 % if display
@@ -123,8 +123,8 @@ T = freeBoundary(delaunayTriangulation(P));
 %   view(75,10);
 % end
 new.azi = 0:azires:360-azires;
-new.ele = zeros(size(new.azi));
-new.r = r(1).*ones(size(new.azi));
+new.ele = ele.*zeros(size(new.azi));
+new.r = radius.*ones(size(new.azi));
 [new.x,new.y,new.z]=sph2cart(deg2rad(new.azi),deg2rad(new.ele),new.r);
 Pnew=[new.x;new.y;new.z]';
 % [a,e,r]=cart2sph(Pnew(:,1),Pnew(:,2),Pnew(:,3)); to double check the transformation
