@@ -124,8 +124,9 @@ P=[x y z];
 %   axis equal
 %   view(75,10);
 % end
-new.r = min(orig.r):radres:max(orig.r);
-new.azi = azi*ones(size(new.r));
+new.r = repmat(min(orig.r):radres:2,1,length(azi));
+% new.azi = azi*ones(size(new.r)); 
+new.azi = repmat(azi,1,length(new.r)/length(azi));
 new.ele = ele*ones(size(new.r));
 [new.x,new.y,new.z]=sph2cart(deg2rad(new.azi),deg2rad(new.ele),new.r);
 Pnew=[new.x;new.y;new.z]';

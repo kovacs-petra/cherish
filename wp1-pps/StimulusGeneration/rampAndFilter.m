@@ -10,19 +10,20 @@ if not(exist("SOFAdbPath.m","file"))
     addpath(sofaPath);
     SOFAstart;
 end
-database = 'ari';
-HRTFfilename = 'Kemar_HRTF_sofa_interpolated.sofa';
+database = 'scut';
+HRTFfilename = 'SCUT_KEMAR_radius_all_interp2.sofa';
 fullfn = fullfile(SOFAdbPath, 'database', database, HRTFfilename);
 Obj = SOFAload(fullfn);
 fs = Obj.Data.SamplingRate;
 
-savename = ['sample',num2str(trajectory),'_',num2str(offsetAzimuth),'.mat'];
+savename = ['sample',num2str(trajectory),'_',num2str(offsetAzimuth),'_scut.mat'];
 
 PPS = 0.2;
 EPS = 2.0;
 v = 1;
 
-frequency = (randi(4,1)+5)*100; % 600-900 Hz with round 100 values
+% frequency = (randi(4,1)+5)*100; % 600-900 Hz with round 100 values
+frequency = 700;
 
     % Set radii
     switch trajectory
@@ -112,7 +113,7 @@ frequency = (randi(4,1)+5)*100; % 600-900 Hz with round 100 values
     %     T = [gap' gap'; gap' gap'];
     % end
 
-    cue = local_SOFAspat(C',Obj,azi,ele,r);
+    [cue, aziA, eleA, rA, ~] = local_SOFAspat(C',Obj,azi,ele,r);
     if trajectory < 4
         dbChange = 20 * log10(1 / max(cue,[],"all")); % scale to [-1,1]
  
@@ -121,8 +122,8 @@ frequency = (randi(4,1)+5)*100; % 600-900 Hz with round 100 values
     end
     cue = db2mag(dbChange)*cue;
 
-    scalestimT = [cue' T];
-    save(savename, "scalestimT");
+    out = [cue' T];
+    save(savename, "out", "fs");
 
 end
 
