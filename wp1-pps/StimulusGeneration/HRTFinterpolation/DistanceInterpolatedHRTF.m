@@ -15,10 +15,10 @@ if isfield(X,'GLOBAL__NCProperties'), X=rmfield(X,'GLOBAL__NCProperties'); end
 
 % Remove elevation
 Xhor=X;
-% idx = X.SourcePosition(:,2)==0;
-% Xhor.Data.IR=Xhor.Data.IR(idx,:,:);
-% Xhor.SourcePosition=Xhor.SourcePosition(idx,:);
-% Xhor = SOFAupdateDimensions(Xhor);
+idx = X.SourcePosition(:,2)==0;
+Xhor.Data.IR=Xhor.Data.IR(idx,:,:);
+Xhor.SourcePosition=Xhor.SourcePosition(idx,:);
+Xhor = SOFAupdateDimensions(Xhor);
 
 %% Interpolate HRTF
 ele = 0;
@@ -28,6 +28,7 @@ azires = 1;
 r = min(X.SourcePosition(:,3));
 [XhorintPPS, TOAcheckhor] = LocaDyn_InterpolateHRTFs_horPlane(Xhor,azires,ele,r,2,1);
 r = max(X.SourcePosition(:,3));
+% r = 2; % EPS 2 m
 [XhorintEPS, TOAcheckhor] = LocaDyn_InterpolateHRTFs_horPlane(Xhor,azires,ele,r,2,1);
 
 % Interpolate HRTFs radially
@@ -37,11 +38,17 @@ azi = 90;
 azi = 270;
 [XradintRight, TOAcheck] = LocaDyn_InterpolateHRTFs_distance(Xhor,radires,azi,ele,2,0);
 
-%% Combine interpolated HRTFs -> SOFAspat seems to have problems with the combined HRTF set -> keep them separate!
-Xint = X;
-Xint.Data.IR= [XhorintPPS.Data.IR;XhorintEPS.Data.IR; XradintLeft.Data.IR; XradintRight.Data.IR];
-Xint.SourcePosition=[XhorintPPS.SourcePosition;XhorintEPS.SourcePosition; XradintLeft.SourcePosition; XradintRight.SourcePosition];
-Xint = SOFAupdateDimensions(Xint);
+%% Save the four HRTFs separately
+SOFAsave("HRTF_PPS.sofa", XhorintPPS);
+SOFAsave("HRTF_EPS.sofa", XhorintEPS);
+SOFAsave("HRTF_left.sofa", XradintLeft);
+SOFAsave("HRTF_right.sofa", XradintRight);
+
+% %% Combine interpolated HRTFs -> SOFAspat seems to have problems with the combined HRTF set -> keep them separate!
+% Xint = X;
+% Xint.Data.IR= [XhorintPPS.Data.IR;XhorintEPS.Data.IR; XradintLeft.Data.IR; XradintRight.Data.IR];
+% Xint.SourcePosition=[XhorintPPS.SourcePosition;XhorintEPS.SourcePosition; XradintLeft.SourcePosition; XradintRight.SourcePosition];
+% Xint = SOFAupdateDimensions(Xint);
 
 %% Plot original and interpolated HRTFs
 Xall = [Xhor,Xint];
@@ -83,7 +90,7 @@ figure;
 scatter3(x,y,z)
 
 %% Listening examples
-sig = sig_triwave(400,fs,3);
+sig = sig_triwave(400,44100,3);
 
 %% Looming sound
 traj.r = linspace(1,0.2,length(sig));
@@ -98,5 +105,13 @@ traj.r = linspace(0.2,0.2,length(sig));
 traj.azi = linspace(-90,90,length(sig));
 traj.ele = ele*ones(length(traj.r),1);
 [out, aziActual, eleActual, rActual, idx] = SOFAspat((sig./traj.r)',XhorintPPS,traj.azi,traj.ele,traj.r);
+figure; plot(out)
+soundsc(out,fs)
+
+%% Clockwise rotating sound, EPS
+traj.r = linspace(2,2,length(sig));
+traj.azi = linspace(-90,90,length(sig));
+traj.ele = ele*ones(length(traj.r),1);
+[out, aziActual, eleActual, rActual, idx] = SOFAspat((sig./traj.r)',XhorintEPS,traj.azi,traj.ele,traj.r);
 figure; plot(out)
 soundsc(out,fs)

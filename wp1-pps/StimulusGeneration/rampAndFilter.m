@@ -4,14 +4,34 @@ function rampAndFilter(trajectory,offsetAzimuth)
 %                 far
 % offsetAzimuth - integer, e.g 90 or -90
 
-%% Load HRTF dataset for spatialization
+%% Load HRTF datasets for spatialization
 if not(exist("SOFAdbPath.m","file"))
     sofaPath = '\\kfs\fileserver\ProjektDaten\CherISH\code\SOFAtoolbox\SOFAtoolbox';
     addpath(sofaPath);
     SOFAstart;
 end
 database = 'scut';
-HRTFfilename = 'SCUT_KEMAR_radius_all_interp2.sofa';
+switch trajectory
+    case 1 % looming
+        switch offsetAzimuth
+            case 90
+                HRTFfilename = '';
+            case -90
+                HRTFfilename = '';
+        end
+    case 2 % receding
+        switch offsetAzimuth
+            case 90
+                HRTFfilename = '';
+            case -90
+                HRTFfilename = '';
+        end
+    case 3 % rotating PPS
+        HRTFfilename = 'HRTF_PPS.sofa';
+    case 4 % rotating EPS
+        HRTFfilename = 'HRTF_EPS.sofa';
+end
+
 fullfn = fullfile(SOFAdbPath, 'database', database, HRTFfilename);
 Obj = SOFAload(fullfn);
 fs = Obj.Data.SamplingRate;
@@ -56,7 +76,7 @@ frequency = 700;
     % Moving portion: duration calculated from distance and velocity
     durMoving = abs(EPS-PPS)/v;
 
-    % Calculate total duration WARNING should be done later prolly
+    % Calculate total duration 
     totalDur = durStatOnset+durMoving+durStatOffset; % in s
 
     ele = linspace(0,0,round(totalDur*fs));
@@ -68,14 +88,12 @@ frequency = 700;
 
     %% Set azimuth
     if trajectory <= 2 % looming or receding
-        % aziMain = [offsetAzimuth offsetAzimuth];
         azi = [linspace(offsetAzimuth, offsetAzimuth, round(durStatOnset*fs)), ...
             linspace(offsetAzimuth, offsetAzimuth, round(durMoving*fs)), ...
             linspace(offsetAzimuth, offsetAzimuth, round(durStatOffset*fs))];
     elseif trajectory >= 3 % rotating near or far
-        % aziMain = [0 offsetAzimuth];
-        azi = [linspace(0, 0, round(durStatOnset*fs)), ...
-            linspace(0, offsetAzimuth, round(durMoving*fs)), ...
+        azi = [linspace(-offsetAzimuth, -offsetAzimuth, round(durStatOnset*fs)), ...
+            linspace(-offsetAzimuth, offsetAzimuth, round(durMoving*fs)), ...
             linspace(offsetAzimuth, offsetAzimuth, round(durStatOffset*fs))];        
     end
 
