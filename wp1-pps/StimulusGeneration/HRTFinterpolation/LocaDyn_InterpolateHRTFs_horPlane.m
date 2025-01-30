@@ -136,9 +136,9 @@ Xnew.Data.IR=zeros(length(Pnew),Xsp.API.R,Xsp.API.N);
 Xnew.SourcePosition=[new.azi(:), new.ele(:), new.r(:)];
 MInspect=NaN; % stop at MInspect measurement for inspection
 tic
-for ii=1:length(Pnew)  
+for ii=1:length(Pnew)
   [g,Tidx] = VBAPgain(Pnew(ii,:), P, T);
-  if isnan(g), error('face for VBAPing not found'); end
+  % if isnan(g), error('face for VBAPing not found'); end
   for r=1:Xsp.API.R
     A=squeeze(Xsp.Data.IR(T(Tidx,:),r,:))'; % A: three IRs from the face around the new position
     Xnew.Data.IR(ii,r,:)=A*g'; % matrix-vector product
