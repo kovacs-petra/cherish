@@ -15,16 +15,16 @@ switch trajectory
     case 1 % looming
         switch offsetAzimuth
             case 90
-                HRTFfilename = '';
+                HRTFfilename = 'HRTF_left.sofa';
             case -90
-                HRTFfilename = '';
+                HRTFfilename = 'HRTF_right.sofa';
         end
     case 2 % receding
         switch offsetAzimuth
             case 90
-                HRTFfilename = '';
+                HRTFfilename = 'HRTF_left.sofa';
             case -90
-                HRTFfilename = '';
+                HRTFfilename = 'HRTF_right.sofa';
         end
     case 3 % rotating PPS
         HRTFfilename = 'HRTF_PPS.sofa';
@@ -92,9 +92,9 @@ frequency = 700;
             linspace(offsetAzimuth, offsetAzimuth, round(durMoving*fs)), ...
             linspace(offsetAzimuth, offsetAzimuth, round(durStatOffset*fs))];
     elseif trajectory >= 3 % rotating near or far
-        azi = [linspace(-offsetAzimuth, -offsetAzimuth, round(durStatOnset*fs)), ...
-            linspace(-offsetAzimuth, offsetAzimuth, round(durMoving*fs)), ...
-            linspace(offsetAzimuth, offsetAzimuth, round(durStatOffset*fs))];        
+        azi = [linspace(-offsetAzimuth+1, -offsetAzimuth+1, round(durStatOnset*fs)), ...
+            linspace(-offsetAzimuth+1, offsetAzimuth-1, round(durMoving*fs)), ...
+            linspace(offsetAzimuth-1, offsetAzimuth-1, round(durStatOffset*fs))];        
     end
 
     %% Generate triangle waves for each portion
