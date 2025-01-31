@@ -15,10 +15,10 @@ if isfield(X,'GLOBAL__NCProperties'), X=rmfield(X,'GLOBAL__NCProperties'); end
 
 % Remove elevation
 Xhor=X;
-idx = X.SourcePosition(:,2)==0;
-Xhor.Data.IR=Xhor.Data.IR(idx,:,:);
-Xhor.SourcePosition=Xhor.SourcePosition(idx,:);
-Xhor = SOFAupdateDimensions(Xhor);
+% idx = X.SourcePosition(:,2)==0;
+% Xhor.Data.IR=Xhor.Data.IR(idx,:,:);
+% Xhor.SourcePosition=Xhor.SourcePosition(idx,:);
+% Xhor = SOFAupdateDimensions(Xhor);
 
 %% Interpolate HRTF
 ele = 0;
@@ -51,7 +51,7 @@ SOFAsave("HRTF_right.sofa", XradintRight);
 % Xint = SOFAupdateDimensions(Xint);
 
 %% Plot original and interpolated HRTFs
-Xall = [Xhor,Xint];
+Xall = [Xhor,XradintLeft];
 for xx = 1: length(Xall)
 for R = 1:2
   fs = Xall(xx).Data.SamplingRate;
@@ -85,12 +85,13 @@ end
 end
 
 %%
-[x,y,z]= sph2cart(deg2rad(Xint.SourcePosition(:,1)),deg2rad(Xint.SourcePosition(:,2)),Xint.SourcePosition(:,3)); 
-figure; 
-scatter3(x,y,z)
+% [x,y,z]= sph2cart(deg2rad(Xint.SourcePosition(:,1)),deg2rad(Xint.SourcePosition(:,2)),Xint.SourcePosition(:,3)); 
+% figure; 
+% scatter3(x,y,z)
 
 %% Listening examples
-sig = sig_triwave(400,44100,3);
+addpath('../')
+sig = sig_triwave(400,fs,3);
 
 %% Looming sound
 traj.r = linspace(1,0.2,length(sig));
@@ -102,7 +103,7 @@ soundsc(out,fs)
 
 %% Clockwise rotating sound, PPS
 traj.r = linspace(0.2,0.2,length(sig));
-traj.azi = linspace(-90,90,length(sig));
+traj.azi = [-90*ones(1,fs/2),linspace(-90,90,length(sig)-fs),90*ones(1,fs/2),];
 traj.ele = ele*ones(length(traj.r),1);
 [out, aziActual, eleActual, rActual, idx] = SOFAspat((sig./traj.r)',XhorintPPS,traj.azi,traj.ele,traj.r);
 figure; plot(out)
