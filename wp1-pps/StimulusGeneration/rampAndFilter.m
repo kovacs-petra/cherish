@@ -82,9 +82,9 @@ frequency = 700;
     ele = linspace(0,0,round(totalDur*fs));
 
     % Set trajectory vector based on the durations
-    r = [linspace(rOnset(1), rOnset(2), round(durStatOnset*fs)), ...
-            linspace(rMoving(1), rMoving(2), round(durMoving*fs)), ...
-            linspace(rOffset(1), rOffset(2), round(durStatOffset*fs))];
+    r = [linspace(rOnset(1), rOnset(2), durStatOnset*fs), ...
+            linspace(rMoving(1), rMoving(2), durMoving*fs), ...
+            linspace(rOffset(1), rOffset(2), durStatOffset*fs)];
 
     %% Set azimuth
     if trajectory <= 2 % looming or receding
@@ -92,19 +92,19 @@ frequency = 700;
             linspace(offsetAzimuth, offsetAzimuth, round(durMoving*fs)), ...
             linspace(offsetAzimuth, offsetAzimuth, round(durStatOffset*fs))];
     elseif trajectory >= 3 % rotating near or far
-        azi = [linspace(-offsetAzimuth+1, -offsetAzimuth+1, round(durStatOnset*fs)), ...
-            linspace(-offsetAzimuth+1, offsetAzimuth-1, round(durMoving*fs)), ...
-            linspace(offsetAzimuth-1, offsetAzimuth-1, round(durStatOffset*fs))];        
+        azi = [linspace(-offsetAzimuth, -offsetAzimuth, round(durStatOnset*fs)), ...
+            linspace(-offsetAzimuth, offsetAzimuth, round(durMoving*fs)), ...
+            linspace(offsetAzimuth, offsetAzimuth, round(durStatOffset*fs))];        
     end
 
     %% Generate triangle waves for each portion
-    % Generate square waves for stationary portions
+    % Generate triangle waves for stationary portions
     tStatOnset = linspace(0,durStatOnset,durStatOnset*fs); % Time vector from 0 to dur with sampling interval 1/fs
     statOnset = sawtooth(2 * pi * frequency * tStatOnset, 0.5); % 0.5 for a symmetric triangular wave
     tStatOffset = linspace(0,durStatOffset,durStatOffset*fs);
     statOffset  = sawtooth(2 * pi * frequency * tStatOffset, 0.5);
 
-    % Generate square waves for moving portion
+    % Generate triangle waves for moving portion
     tMoving = linspace(0,durMoving,durMoving*fs);
     moving = sawtooth(2 * pi * frequency * tMoving, 0.5);
 
