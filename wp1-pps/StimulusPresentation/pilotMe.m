@@ -22,11 +22,11 @@ fs = 48e3;
 % device = [];  % system default is our default as well
 tmpDevices = PsychPortAudio('GetDevices');
 for i = 1:numel(tmpDevices)
-    if strcmp(tmpDevices(i).DeviceName, 'Lautsprecher (RME Fireface UCX ')
+    % if strcmp(tmpDevices(i).DeviceName, 'Lautsprecher (RME Fireface UCX ')
+    if strcmp(tmpDevices(i).DeviceName, 'Speakers/Headphones (Realtek(R) Audio)')
         device = tmpDevices(i).DeviceIndex;
     end
 end
-
 % mode is simple playback
 mode = 1;
 % reqlatencyclass is set to low-latency
@@ -38,10 +38,14 @@ nrChannels = 2;
 disp([char(10), 'Set audio parameters']);
 
 % Define the specific keys we use
+KbName('UnifyKeyNames');
 keys = struct;
 keys.abort = KbName('ESCAPE');
 keys.go = KbName('SPACE');
 keys.respTarget = KbName('RETURN');
+keys.left = KbName('LeftArrow');
+keys.right = KbName('RightArrow');
+keys.up = KbName('UpArrow');
 
 % restrict keys to the ones we use
 keysFields = fieldnames(keys);
@@ -89,9 +93,7 @@ Screen('DrawLines', fixCrossWin, allCoords,...
     lineWidthPix, textColor, [xCenter yCenter], 2);
 
 % open PsychPortAudio device for playback
-if ~exist('pahandle', 'var')
-    pahandle = PsychPortAudio('Open', device, mode, reqLatencyClass, fs, nrChannels);
-end
+pahandle = PsychPortAudio('Open', device, mode, reqLatencyClass, fs, nrChannels);
 % get and display device status
 pahandleStatus = PsychPortAudio('GetStatus', pahandle);
 disp([char(10), 'PsychPortAudio device status: ']);
@@ -108,21 +110,21 @@ PsychPortAudio('Stop', pahandle, 1);  % stop when playback is over
 % Play a sound on the left, right, middle, and have the listener respond
 % which side they heard it on (left arrow, right arrow, up arrow,
 % respectively)
+addpath('..\StimulusGeneration\sig_triwave.m');
 
 % Generate the sounds (triangle waves)
-testDur = 3;
-t = linspace(0,testDur,testDur*fs);
-signal = sawtooth(2*pi*400*t,0.5);
-left = [signal zeros(length(signal),1)];
-right = [zeros(length(signal),1) signal];
-middle = [signal signal];
-testSounds = [left; right; middle]; % fixed order
-testResp = [keys.respLeft, keys.respRight, keys.respMid]; % correct responses
+testDur = 2;
+signal = sig_triwave(400,fs,testDur);
+left = [signal; zeros(1,length(signal))];
+right = [zeros(1,length(signal)); signal];
+middle = [signal; signal];
+testSounds = {left; right; middle}; % fixed order
+testResp = [keys.left, keys.right, keys.up]; % correct responses
 
 % Fill buffer with the test sounds
 testBuffer = [];
 for sounds = 1:3
-    testBuffer(end+1) = PsychPortAudio('CreateBuffer', [], testSounds(:,sounds));
+    testBuffer(end+1) = PsychPortAudio('CreateBuffer', [], testSounds{sounds,1});
 end
 
 % Write instructions on the screen
@@ -167,8 +169,9 @@ disp([char(10), 'Subject signalled she/he is ready, we start headphone check']);
 Screen('CopyWindow', fixCrossWin, win);
 Screen('DrawingFinished', win);
 respInt = 4;
+success = 0;
 for check = 1:3
-    PsychPortAudio('FillBuffer', pahandle, testBuffer(check));
+    PsychPortAudio('FillBuffer', pahandle, testBuffer(check)); % bufferdata: 2xN
     testStart = PsychPortAudio('Start', pahandle, 1, [], 1);
 
     % Record a response and write it in a user msg
@@ -177,6 +180,7 @@ for check = 1:3
         if keyIsDown % if subject responded
             if find(keyCode) == testResp(check) % and it was the correct button
                 disp(strcat('Side ',num2str(check), ': Correct response.'));
+                success = success+1;
                 break;
             else
                 disp(strcat('Side ',num2str(check), ': Incorrect response.'));
@@ -184,7 +188,45 @@ for check = 1:3
             end
         end
     end
-end
+end % headphone check
+
+if success == 3
+    % display msg to listener: successful headphone check, we go on
+    Screen('FillRect', win, backGroundColor);
+    DrawFormattedText(win, 'Headphone check successful.', 'center', 'center', textColor);
+    Screen('Flip', win);
+    WaitSecs(3);
+else
+    % display blank window to listener
+    % user msg: go and check what's wrong, press return to continue
+    Screen('FillRect', win, backGroundColor);
+    Screen('Flip', win);
+    disp('There was a problem with the headphone check, investigate!');
+    disp('Press ENTER to continue or ESC to abort.');
+    while 1
+        [keyIsDown, ~, keyCode] = KbCheck;
+        if keyIsDown
+            % if subject is ready to start
+            if find(keyCode) == keys.go
+                break;
+            elseif find(keyCode) == keys.abort
+                % if abort was requested
+                abortFlag = 1;
+                break;
+            end
+        end
+    end
+    if abortFlag
+        ListenChar(0);
+        Priority(0);
+        RestrictKeysForKbCheck([]);
+        PsychPortAudio('Close');
+        Screen('CloseAll');
+        ShowCursor(screenNumber);
+        return;
+    end
+
+end % action after headphone check
 
 
     %% Task loop
