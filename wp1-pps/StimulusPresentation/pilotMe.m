@@ -16,7 +16,19 @@ end
 PsychDefaultSetup(1);
 Screen('Preference', 'SkipSyncTests', 1);
 InitializePsychSound(1);
-fs = 48e3;
+
+% Get sampling rate from the hrtf file that was used for stimulus
+% generation
+if not(exist("SOFAdbPath.m","file"))
+    sofaPath = '\\kfs\fileserver\ProjektDaten\CherISH\code\SOFAtoolbox\SOFAtoolbox';
+    addpath(sofaPath);
+    SOFAstart;
+end
+database = 'scut';
+HRTFfilename = 'SCUT_KEMAR_radius_all.sofa';
+fullfn = fullfile(SOFAdbPath, 'database', database, HRTFfilename);
+Obj = SOFAload(fullfn);
+fs = Obj.Data.SamplingRate;
 
 % Select audio device
 % device = [];  % system default is our default as well
@@ -263,22 +275,9 @@ end % action after headphone check
         % Collect column numbers from the resulting stimArray
         %%%%%%% HARD-CODED VALUES %%%%%%%
         targetColumn = 10;
-        audioColumn = 11;
-        stimTypeColumn = 12;
+        audioColumn = 12;
+        stimTypeColumn = 13;
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-        % Get sampling rate from the hrtf file that was used for stimulus
-        % generation
-        % if not(exist("SOFAdbPath.m","file"))
-        %     sofaPath = '\\kfs\fileserver\ProjektDaten\CherISH\code\SOFAtoolbox\SOFAtoolbox';
-        %     addpath(sofaPath);
-        %     SOFAstart;
-        % end
-        % database = 'scut';
-        % HRTFfilename = 'SCUT_KEMAR_radius_all.sofa';
-        % fullfn = fullfile(SOFAdbPath, 'database', database, HRTFfilename);
-        % Obj = SOFAload(fullfn);
-        fs = 48000;
 
         % user message
         disp([char(10), 'Ready to start the experiment']);

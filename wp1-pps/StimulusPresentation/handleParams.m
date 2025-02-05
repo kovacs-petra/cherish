@@ -108,7 +108,7 @@ logFileFlag = 0;
 % log header - needed for sanity check as well
 logHeader = {'subNum', 'blockNo', 'trialNo', 'trajectory', ... 
     'onsetDistance','offsetDistance', 'SPL', 'totalDur', 'durStatOnset', ...
-    'durStatOffset', 'offsetAzimuth', 'target', 'accuracy', 'respTime', 'trigger'};
+    'durStatOffset', 'offsetAzimuth', 'target', 'congruence', 'accuracy', 'respTime', 'trigger'};
 
 % check if subject folder already exists
 if exist(dirN, 'dir')
@@ -244,7 +244,7 @@ disp([char(10), 'Loaded stimuli and saved out parameters/settings into params fi
 % attach stimulus type indices, block and trial indices to stimulus
 % array - but first a quick sanity check of stimArray size
 %%%%%% HARD-CODED VALUE %%%%%%
-cols = 11;
+cols = 12;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 if ~isequal(size(stimArray), [length(trialIdx), cols])
@@ -279,6 +279,8 @@ if ~logFileFlag
     logVar(2:end, strcmp(logHeader, 'durStatOffset'))   = stimArray(:, 5);
     logVar(2:end, strcmp(logHeader, 'offsetAzimuth'))   = stimArray(:, 9);
     logVar(2:end, strcmp(logHeader, 'target'))          = stimArray(:, 10);
+    logVar(2:end, strcmp(logHeader, 'congruence'))      = stimArray(:, 11);
+
 end
 
 %% Find correct start point if there was a valid logging file
