@@ -1,4 +1,4 @@
-function stimArray = getStimuliArray(folders)
+function stimArray = getStimuliArray(task)
 % Function to summarize CherISH pilot stimuli into one big stimuli mat file
 %
 % USAGE: stimArray = getStimuliArray(folders)
@@ -23,7 +23,13 @@ function stimArray = getStimuliArray(folders)
 %               need
 %
 
-% folders = {'23-Jan-2025-1411','23-Jan-2025-1412','23-Jan-2025-1336','23-Jan-2025-1346'}; 
+if task == 1
+    folders = {'05-Feb-2025-1348','05-Feb-2025-1350',...
+        '05-Feb-2025-1350_1','05-Feb-2025-1351'}; % task 1, spatialized target
+else
+    folders = {'05-Feb-2025-1351_1','05-Feb-2025-1351_2',...
+        '05-Feb-2025-1352','05-Feb-2025-1352_1'}; % task 2, diotic target
+end
 
 % check for existence of folders
 if iscell(folders)
@@ -54,7 +60,8 @@ paramFields = {
     'offsetDistance', ...    % Cue offset distance in m
     'trajectory', ...        % 1 - loom, 2 - rec, 3 - rotate near, 4 - rotate far
     'offsetAzimuth', ...     % Side of the cue (at offset): 90 - left, -90 - right
-    'target', ...            % 1 - target trial, 0 - nontarget trial
+    'targetTrial', ...       % 1 - target trial, 0 - nontarget trial
+    'congruence', ...
 };
 
 % output variable collecting stimuli sets
@@ -78,7 +85,8 @@ for f = 1:length(folders)
     end
 
     % load first audio to get audio size
-    audioF = [folders{f}, '/', myCell{1, 1}, '.mat'];
+    % audioF = [folders{f}, '/', myCell{1, 1}, '.mat'];
+    audioF = [myCell{1,1}, '.mat']; 
     % [data, ~] = audioread(audioF);
     load(audioF, 'out');
     
@@ -105,7 +113,7 @@ end  % folders for loop
 stimArray = vertcat(stimArray{:});
 
 %% Ending
-stimArrayName = ['stimArray', num2str(conditions),'.mat'];
+stimArrayName = ['stimArray', num2str(task),'.mat'];
 save(stimArrayName,"stimArray");
 disp([char(10), 'Finished, returning']);
 

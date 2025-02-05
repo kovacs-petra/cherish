@@ -59,9 +59,9 @@ disp([char(10), 'Called stim2blocks with input args: ',...
 %% Loading stimuli, sanity checks
 %%%%%% HARD-CODED VALUES %%%%%
 % number of expected cell columns for the stimuli array
-stimFeaturesNo = 11;
+stimFeaturesNo = 12;
 % header for final stimTypes cell array (see the last code block)
-stimTypesHdr = {'trajectory','target','stimTypeIdx'};
+stimTypesHdr = {'trajectory','target','congruence','stimTypeIdx'};
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % load stimuli
@@ -87,17 +87,17 @@ disp([char(10), 'Loaded stimuli array, found ', num2str(trialNo), ' trials, ',..
 
 %%%%%%%%%%%% HARD-CODED VALUES %%%%%%%%%%%
 trajectory = cell2mat(stimArray(:, 8));
-offsetAzimuth = cell2mat(stimArray(:, 9));
 target = cell2mat(stimArray(:,10));
+congruence = cell2mat(stimArray(:,11));
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % unique combinations
-[stimTypes, ~, stimTypeIdx] = unique([trajectory,target], 'rows');
+[stimTypes, ~, stimTypeIdx] = unique([trajectory,target,congruence], 'rows');
 
 % user message
 disp([char(10), 'There are ', num2str(size(stimTypes, 1)),... 
     ' different trial types  in the stimuli array ',... 
-    char(10), '(in terms of space, trajectory, and target presence)']);
+    char(10), '(in terms of trajectory, target presence, and congruence)']);
 
 % check how many of each unique types we have
 stimTypesNumbers = nan(size(stimTypes, 1), 1);
@@ -108,7 +108,7 @@ end
 % if there are different numbers for trial types, that is a problem, throw
 % error, otherwise report the number per type and per type per block
 if length(unique(stimTypesNumbers)) ~= 1
-    disp([char(10), 'Stimulus types in terms of trajectory, target:']);
+    disp([char(10), 'Stimulus types in terms of trajectory, target and congruence:']);
     disp(stimTypes);
     disp('Number of trials per stimulus type:');
     disp(stimTypesNumbers);
