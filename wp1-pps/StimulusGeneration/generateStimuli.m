@@ -1,4 +1,4 @@
-function generateStimuli(nStimuli,trajectory,offsetAzimuth,targetSpat)
+function generateStimuli(nStimuli,trajectory,offsetAzimuth,sourceInt)
 % Generate sound stimuli for wp1 pilot in four possible trajectories: looming,
 % receding, rotating near, rotating far
 %
@@ -8,7 +8,7 @@ function generateStimuli(nStimuli,trajectory,offsetAzimuth,targetSpat)
 % trajectory    - 1: looming, 2: receding, 3: rotating near, 4: rotating
 %                 far
 % offsetAzimuth - of the cue, integer, e.g 90 or -90
-% targetSpat    - 1: spatialized target, 0: diotic target
+% sourceInt    - 1: high intensity, 0: low intensity
 %
 % Output:
 % Directory with the generated .mat files, named after the date and time
@@ -32,7 +32,7 @@ if ~exist("amt_start.m","file")
 end
 
 %% Load HRTF datasets for spatialization
-if not(exist("SOFAdbPath.m","file"))
+if ~exist("SOFAdbPath.m","file")
     sofaPath = '\\kfs\fileserver\ProjektDaten\CherISH\code\SOFAtoolbox\SOFAtoolbox';
     addpath(sofaPath);
     SOFAstart;
@@ -80,11 +80,11 @@ mkdir(wavDir);
 % Set radii for all stimuli
 % Representative distances of each space in meter:
 PPS = 0.2;
-EPS = 2.0;
+EPS = 1.0;
 v = 1; % velocity in m/s
 
 % Set values which have to be counterbalanced
-switch targetSpat
+switch sourceInt
     case 0 % Counterbalance target and no target
         targetTrial = [...
             zeros(1,nStimuli/4), ...
@@ -204,7 +204,7 @@ for stimNo = 1:nStimuli
     win = tukeywin(size(C,2),(0.1*fs)/size(C,2)); % 0.1 s on-offset ramp
     C = C.*win';
 
-    if targetSpat == 0
+    if sourceInt == 0
         if targetTrial(stimNo) == 1
             T = [gap' target; gap' target]; % target
         else
@@ -227,7 +227,7 @@ for stimNo = 1:nStimuli
     scalecue2 = scaletodbspl(cue(:,2)',dbspl(cue(:,2)')+scaledb);
     scalecue = [scalecue1; scalecue2];
 
-    switch targetSpat
+    switch sourceInt
         case 0              
                 out = [scalecue T];
 
