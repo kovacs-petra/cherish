@@ -1,7 +1,7 @@
 function [stimArray, sortIndices, startTrialNo,... 
     startBlockNo, blockIdx, trialIdx,...
     logVar, subLogF, returnFlag, logHeader,...
-    stimTypes] = handleParams(subNum, stimArrayFile, noBlocks, task)
+    stimTypes] = handleParams(subNum, stimArrayFile, noBlocks)
 %% Function handling parameters/settings, stimuli and conflicts
 %
 % USAGE: [stimArray, sortIndices, startTrialNo,... 
@@ -95,9 +95,9 @@ stimArray = []; sortIndices = []; stimTypes = [];
 % subject folder name
 dirN = ['subject', num2str(subNum)];
 % subject parameters/settings file
-subParamsF = [dirN, '/sub', num2str(subNum), 'Params', num2str(task), '.mat'];
+subParamsF = [dirN, '/sub', num2str(subNum), 'Params.mat'];
 % subject log file
-subLogF = [dirN, '/sub', num2str(subNum), 'Log', num2str(task), '.mat'];
+subLogF = [dirN, '/sub', num2str(subNum), 'Log.mat'];
 % date and time of starting with a subject
 c = clock; d = date; %#ok<*DATE,*CLOCK>
 timestamp = {[d, '-', num2str(c(4)), num2str(c(5))]};
@@ -121,8 +121,10 @@ logHeader = {...
     'trajectory', ...        % 1 - loom, 2 - rec, 3 - rotate near, 4 - rotate far
     'offsetAzimuth', ...     % Side of the cue (at offset): 90 - left, -90 - right
     'targetTrial', ...       % 1 - target trial, 0 - nontarget trial
-    'congruence',...         % 1 - congruent target, 0 - incongruent target
-    'sourceInt',...          % 1 - high source intensity, 0 - low source intensity
+    'congruence', ...        % 1 - congruent target, 0 - incongruent target
+    'targetAzimuth', ...     % 90 or -90 (deg)
+    'sourceInt', ...         % 1 - high source intensity, 0 - low source intensity (placeholder)
+    'fs', ...                % sampling rate
     'accuracy', ...
     'respTime', ...
     'promptness', ...
@@ -262,7 +264,7 @@ disp([char(10), 'Loaded stimuli and saved out parameters/settings into params fi
 % attach stimulus type indices, block and trial indices to stimulus
 % array - but first a quick sanity check of stimArray size
 %%%%%% HARD-CODED VALUE %%%%%%
-cols = 15;
+cols = 17;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 if ~isequal(size(stimArray), [length(trialIdx), cols])
@@ -287,20 +289,22 @@ if ~logFileFlag
 
     % insert known columns in advance
     logVar(2:end, strcmp(logHeader, 'subNum'))          = num2cell(repmat(subNum, [size(stimArray, 1), 1]));  % subNum
-    logVar(2:end, strcmp(logHeader, 'blockNo'))         = stimArray(:, 13);
-    logVar(2:end, strcmp(logHeader, 'trialNo'))         = stimArray(:, 14);
-    logVar(2:end, strcmp(logHeader, 'stimID'))          = stimArray(:, xxxxx);
-    logVar(2:end, strcmp(logHeader, 'frequency'))       = stimArray(:, xxxxx);
-    logVar(2:end, strcmp(logHeader, 'totalDur'))        = stimArray(:, 8);  
-    logVar(2:end, strcmp(logHeader, 'durStatOnset'))    = stimArray(:, 6);   
-    logVar(2:end, strcmp(logHeader, 'durStatOffset'))   = stimArray(:, 7);
-    logVar(2:end, strcmp(logHeader, 'onsetDistance'))   = stimArray(:, 3);
-    logVar(2:end, strcmp(logHeader, 'offsetDistance'))  = stimArray(:, 4);
-    logVar(2:end, strcmp(logHeader, 'direction'))       = stimArray(:, 5);
+    logVar(2:end, strcmp(logHeader, 'blockNo'))         = stimArray(:, 19);
+    logVar(2:end, strcmp(logHeader, 'trialNo'))         = stimArray(:, 20);
+    logVar(2:end, strcmp(logHeader, 'stimID'))          = stimArray(:, 15);
+    logVar(2:end, strcmp(logHeader, 'frequency'))       = stimArray(:, 2);
+    logVar(2:end, strcmp(logHeader, 'totalDur'))        = stimArray(:, 3);  
+    logVar(2:end, strcmp(logHeader, 'durStatOnset'))    = stimArray(:, 4);   
+    logVar(2:end, strcmp(logHeader, 'durStatOffset'))   = stimArray(:, 5);
+    logVar(2:end, strcmp(logHeader, 'onsetDistance'))   = stimArray(:, 6);
+    logVar(2:end, strcmp(logHeader, 'offsetDistance'))  = stimArray(:, 7);
+    logVar(2:end, strcmp(logHeader, 'direction'))       = stimArray(:, 8);
     logVar(2:end, strcmp(logHeader, 'trajectory'))      = stimArray(:, 9);
-    logVar(2:end, strcmp(logHeader, 'offsetAzimuth'))   = stimArray(:, xxxxx);
-    logVar(2:end, strcmp(logHeader, 'targetTrial'))     = stimArray(:, 10);
-    logVar(2:end, strcmp(logHeader, 'congruence'))      = stimArray(:, 11);
+    logVar(2:end, strcmp(logHeader, 'offsetAzimuth'))   = stimArray(:, 10);
+    logVar(2:end, strcmp(logHeader, 'targetTrial'))     = stimArray(:, 11);
+    logVar(2:end, strcmp(logHeader, 'congruence'))      = stimArray(:, 12);
+    logVar(2:end, strcmp(logHeader, 'targetAzimuth'))   = stimArray(:, 13);
+    logVar(2:end, strcmp(logHeader, 'fs'))              = stimArray(:, 16);
 
 end
 
