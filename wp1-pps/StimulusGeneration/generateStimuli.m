@@ -1,4 +1,4 @@
-function generateStimuli(nStimuli,trajectory,offsetAzimuth,sourceInt)
+function generateStimuli(nStimuli,trajectory,offsetAzimuth)
 % Generate sound stimuli for wp1 pilot in four possible trajectories: looming,
 % receding, rotating near, rotating far
 %
@@ -8,7 +8,6 @@ function generateStimuli(nStimuli,trajectory,offsetAzimuth,sourceInt)
 % trajectory    - 1: looming, 2: receding, 3: rotating near, 4: rotating
 %                 far
 % offsetAzimuth - of the cue, integer, e.g 90 or -90
-% sourceInt    - 1: high intensity, 0: low intensity
 %
 % Output:
 % Directory with the generated .mat files, named after the date and time
@@ -83,23 +82,28 @@ PPS = 0.2;
 EPS = 1.0;
 v = 1; % velocity in m/s
 
-% Set values which have to be counterbalanced
-switch sourceInt
-    case 0 % Counterbalance target and no target
-        targetTrial = [...
-            zeros(1,nStimuli/4), ...
-            ones(1,nStimuli/4), ...
-            zeros(1,nStimuli/4), ...
-            ones(1,nStimuli/4)]; 
-        congruence = nan(1,nStimuli);
-    case 1 % Counterbalance congruent and incongruent
-        congruence = [...
-            zeros(1,nStimuli/4), ...
-            ones(1,nStimuli/4), ...
-            zeros(1,nStimuli/4), ...
-            ones(1,nStimuli/4)];
-        targetTrial = ones(1,nStimuli);
+% Save data about direction (radial or angular)
+if trajectory < 3
+    direction = 1; % radial
+else
+    direction = 2; % angular
 end
+
+% Set values which have to be counterbalanced
+% Counterbalance target and no target
+targetTrial = [...
+    zeros(1,nStimuli/2), ...
+    ones(1,nStimuli/2)];
+% Counterbalance congruent and incongruent
+congruence = [...
+    zeros(1,nStimuli/4), ...
+    ones(1,nStimuli/4), ...
+    zeros(1,nStimuli/4), ...
+    ones(1,nStimuli/4)];
+
+% Set placeholder for source intensity (will be set upon stimulus
+% presentation)
+sourceInt = zeros(1,nStimuli);
 
 %% Create a home for saved parameters
 outFields = {
@@ -110,10 +114,13 @@ outFields = {
     'durStatOffset', ...     % Duration of stationary offset in the cue
     'onsetDistance', ...     % Cue onset distance in m
     'offsetDistance', ...    % Cue offset distance in m
+    'direction',...          % 1 - radial, 2 - angular
     'trajectory', ...        % 1 - loom, 2 - rec, 3 - rotate near, 4 - rotate far
     'offsetAzimuth', ...     % Side of the cue (at offset): 90 - left, -90 - right
     'targetTrial', ...       % 1 - target trial, 0 - nontarget trial
-    'congruence',...         % 1 - congruent, 0 - incongruent
+    'congruence',...         % 1 - congruent target, 0 - incongruent target
+    'sourceInt',...          % 1 - high source intensity, 0 - low source intensity (placeholder)
+    'stimID',...             % stimulus ID (which unique stimulus)
     };
 
 outCsv = cell(nStimuli+1,length(outFields));
@@ -121,7 +128,9 @@ outCsv(1,:) = outFields;
 
 %% Stimulus generation loop
 for stimNo = 1:nStimuli
-    frequency = (randi(4,1)+5)*100; % 600-900 Hz with round 100 values
+
+    stimID = [num2str(0),num2str(trajectory),num2str(stimNo)];
+    frequency = (randi(6,1)+3)*100; % 400-900 Hz with round 100 values
 
     % Set radii
     switch trajectory
@@ -147,7 +156,7 @@ for stimNo = 1:nStimuli
     end
 
     %% Set durations
-    % Stationary portions: 600-800 ms with round 100 values, in s
+    % Stationary portions: 500-800 ms with round 100 values, in s
     durStatOnset = ((randi(4,1)+4)/10); 
     durStatOffset = ((randi(4,1)+4)/10);
 
@@ -204,66 +213,63 @@ for stimNo = 1:nStimuli
     win = tukeywin(size(C,2),(0.1*fs)/size(C,2)); % 0.1 s on-offset ramp
     C = C.*win';
 
-    if sourceInt == 0
-        if targetTrial(stimNo) == 1
-            T = [gap' target; gap' target]; % target
-        else
-            T = [gap' gap'; gap' gap']; % no target
-        end
+    if targetTrial(stimNo) == 1
+        T = [gap' target; gap' target]; % target
     else
-        T = [gap' target];
+        T = [gap' gap'; gap' gap']; % no target
     end
 
     % Spatialize cue
     cue = local_SOFAspat(C',ObjCue,azi,ele,r);
 
     % Scale cue
-    if trajectory < 4
-        scaledb = 20 * log10(1 / max(cue,[],"all"));
-    else
-        scaledb = 20 * log10(0.1 / max(cue,[],"all"));
+    if trajectory < 4 % sound is in PPS at some point
+        scaledb = 20 * log10(1 / max(cue,[],"all")); % Scale to 1
+    else % sound is in EPS all the way
+        scaleto = PPS/EPS;
+        scaledb = 20 * log10(scaleto / max(cue,[],"all")); % Scale to PPS/EPS (far sound is always softer)
     end
     scalecue1 = scaletodbspl(cue(:,1)',dbspl(cue(:,1)')+scaledb);
     scalecue2 = scaletodbspl(cue(:,2)',dbspl(cue(:,2)')+scaledb);
     scalecue = [scalecue1; scalecue2];
 
-    switch sourceInt
-        case 0              
-                out = [scalecue T];
+    % Spatialize target separately, then concatenate
+    % rTarget = linspace(mean([EPS,PPS]),mean([EPS,PPS]),(targetITI*fs)*2); % Target exactly between EPS and PPS
+    rTarget = linspace(PPS,PPS,(targetITI*fs)*2); % target in PPS
 
-        case 1 % Spatialize target separately, then concatenate
-            % rTarget = linspace(mean([EPS,PPS]),mean([EPS,PPS]),(targetITI*fs)*2); % Target exactly between EPS and PPS
-            rTarget = linspace(PPS,PPS,(targetITI*fs)*2); % target in PPS
+    % Target azimuth is congruent (same as offset azimuth) half the time
+    % and incongruent (opposite of offset azimuth) half the time
+    if congruence(stimNo) == 1
+        targetAzimuth = offsetAzimuth;
+        ObjTarget = ObjCue; % same HRTF set
+    else
+        targetAzimuth = -offsetAzimuth;
+        switch targetAzimuth
+            case 90
+                targetHRTF = 'HRTF_right.sofa';
+            case -90
+                targetHRTF = 'HRTF_left.sofa';
+        end
+        % Load HRTF set for target
+        fullfnT = fullfile(SOFAdbPath, 'database', database, targetHRTF);
+        ObjTarget = SOFAload(fullfnT);
 
-             % Target azimuth is congruent (same as offset azimuth) half the time
-             % and incongruent (opposite of offset azimuth) half the time
-             if congruence(stimNo) == 1
-                 targetAzimuth = offsetAzimuth; 
-                 ObjTarget = ObjCue;
-             else 
-                 targetAzimuth = -offsetAzimuth;
-                 switch targetAzimuth
-                     case 90
-                         targetHRTF = 'HRTF_left.sofa';
-                     case -90
-                         targetHRTF = 'HRTF_right.sofa';
-                 end
-                 fullfnT = fullfile(SOFAdbPath, 'database', database, targetHRTF);
-                 ObjTarget = SOFAload(fullfnT);
-             end
-
-             aziTarget = linspace(targetAzimuth,targetAzimuth,(targetITI*fs)*2);
-             targetStim = local_SOFAspat(T',ObjTarget,aziTarget,ele,rTarget);
-             % stim = [cue' targetStim'];
-
-             % Scale the target
-             scaledb = 20 * log10(1 / max(targetStim,[],"all"));
-             scaletarget1 = scaletodbspl(targetStim(:,1)',dbspl(targetStim(:,1)')+scaledb);
-             scaletarget2 = scaletodbspl(targetStim(:,2)',dbspl(targetStim(:,2)')+scaledb);
-             scaletarget = [scaletarget1; scaletarget2];
-             out = [scalecue scaletarget];
-             % out = [scalecue'; targetStim]';
+        % Sanity check
+        if ObjTarget == ObjCue
+            error('Wrong HRTF loaded for incongruent target.');
+        end
     end
+
+    aziTarget = linspace(targetAzimuth,targetAzimuth,(targetITI*fs)*2);
+    targetStim = local_SOFAspat(T',ObjTarget,aziTarget,ele,rTarget);
+    % stim = [cue' targetStim'];
+
+    % Scale the target
+    scaledb = 20 * log10(1 / max(targetStim,[],"all")); % Target is always in PPS
+    scaletarget1 = scaletodbspl(targetStim(:,1)',dbspl(targetStim(:,1)')+scaledb);
+    scaletarget2 = scaletodbspl(targetStim(:,2)',dbspl(targetStim(:,2)')+scaledb);
+    scaletarget = [scaletarget1; scaletarget2];
+    out = [scalecue scaletarget];
 
     % Save stimulus in .mat file
     digits = ceil(log10(nStimuli + 1));
@@ -277,7 +283,8 @@ for stimNo = 1:nStimuli
 
     % Add parameters to cell array for later saving
     outCsv(stimNo+1, :) = {filename, frequency, totalDur, durStatOnset, durStatOffset,  rMoving(1), ...
-        rMoving(2), trajectory, offsetAzimuth, targetTrial(stimNo), congruence(stimNo)};
+        rMoving(2), direction, trajectory, offsetAzimuth, targetTrial(stimNo),...
+        congruence(stimNo), sourceInt, stimID};
 
 end % stimulus generation loop
 

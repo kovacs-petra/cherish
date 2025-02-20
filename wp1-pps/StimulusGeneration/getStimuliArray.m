@@ -54,14 +54,17 @@ paramFields = {
     'filename', ...
     'frequency', ...         % Cue frequency in Hz
     'totalDur', ...          % Cue duration in s
-    'durStatOnset', ...      % Duration of stationary onset
-    'durStatOffset', ...     % Duration of stationary offset
+    'durStatOnset', ...      % Duration of stationary onset in the cue
+    'durStatOffset', ...     % Duration of stationary offset in the cue
     'onsetDistance', ...     % Cue onset distance in m
     'offsetDistance', ...    % Cue offset distance in m
+    'direction',...          % 1 - radial, 2 - angular
     'trajectory', ...        % 1 - loom, 2 - rec, 3 - rotate near, 4 - rotate far
     'offsetAzimuth', ...     % Side of the cue (at offset): 90 - left, -90 - right
     'targetTrial', ...       % 1 - target trial, 0 - nontarget trial
-    'congruence', ...
+    'congruence',...         % 1 - congruent target, 0 - incongruent target
+    'sourceInt',...          % 1 - high source intensity, 0 - low source intensity
+    'stimID',...
 };
 
 % output variable collecting stimuli sets
