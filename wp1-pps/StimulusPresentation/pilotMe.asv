@@ -166,8 +166,8 @@ end
 % Collect column numbers from the resulting stimArray
 %%%%%%% HARD-CODED VALUES %%%%%%%
 targetColumn = 11;
-audioColumn = 17;
-stimTypeColumn = 18;
+audioColumn = 15;
+stimTypeColumn = 16;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % user message
@@ -407,7 +407,7 @@ for block = startBlockNo:noBlocks
     for trial = min(trialList):max(trialList)
 
         % Set variable iti
-        iti = randi([40 50],1)/10; % 4000-5000 ms with round 100 values
+        iti = randi([40 50],1)*100; % 4000-5000 ms with round 100 values
         
         % relative trial number (trial in given block)
         trialCounterForBlock = trialCounterForBlock+1;
