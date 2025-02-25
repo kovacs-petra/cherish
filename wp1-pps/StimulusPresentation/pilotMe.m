@@ -6,6 +6,7 @@ function pilotMe(subNum, noBlocks)
 % noBlocks  - number of experimental blocks (even number)
 
 % try
+diary(strcat('diaries/s',num2str(subNum),'_',string(datetime("today")))); 
 %% Input check
 if mod(noBlocks,2) ~=0
     warning(['Number of experimental blocks must be an even number, so I''m setting noBlocks to ',...
@@ -66,9 +67,9 @@ keys = struct;
 keys.abort = KbName('ESCAPE');
 keys.go = KbName('SPACE');
 keys.respTarget = KbName('RETURN');
-keys.left = KbName('LeftArrow');
-keys.right = KbName('RightArrow');
-keys.up = KbName('UpArrow');
+% keys.left = KbName('LeftArrow');
+% keys.right = KbName('RightArrow');
+% keys.up = KbName('UpArrow');
 
 % restrict keys to the ones we use
 keysFields = fieldnames(keys);
@@ -128,12 +129,6 @@ tmpBuffer = PsychPortAudio('CreateBuffer', [], tmpSound);  % create buffer
 PsychPortAudio('FillBuffer', pahandle, tmpBuffer);  % fill the buffer of audio device with silence
 PsychPortAudio('Start', pahandle, 1);  % start immediately
 PsychPortAudio('Stop', pahandle, 1);  % stop when playback is over
-
-
-%% Headphone check
-if flag.headphoneCheck
-    headphoneCheck;
-end
 
 % Look for stimArray file in the subject's folder
 stimArrayName = 'stimArray.mat';
@@ -214,8 +209,11 @@ logVar(2:end, strcmp(logHeader, 'trigger')) = num2cell(trig.stimType);
 % user message
 disp([char(10), 'Set up triggers']);
 
+% Set iti 
+iti = 5;  % in secs
+
 % response time interval
-respInt = 1;
+respInt = 1; 
 
 % response variables preallocation
 respTime = nan(size(stimArray, 1), 1);
@@ -294,6 +292,7 @@ if abortFlag
     PsychPortAudio('Close');
     Screen('CloseAll');
     ShowCursor(screenNumber);
+    diary off
     return;
 end
 
@@ -384,6 +383,7 @@ for block = startBlockNo:noBlocks
         PsychPortAudio('Close');
         Screen('CloseAll');
         ShowCursor(screenNumber);
+        diary off
         return;
     end
 
@@ -405,13 +405,13 @@ for block = startBlockNo:noBlocks
 
     % trial loop (over the trials for given block)
     for trial = min(trialList):max(trialList)
-
-        % Set variable iti
-        iti = randi([40 50],1)/10; % 4000-5000 ms with round 100 values
         
+        % Set random ITI 4000-5000 ms
+        iti = randi([40 50],1)/10; % in secs
+
         % relative trial number (trial in given block)
         trialCounterForBlock = trialCounterForBlock+1;
-
+        
         % background with fixation cross, get trial start timestamp
         Screen('CopyWindow', fixCrossWin, win);
         Screen('DrawingFinished', win);
@@ -479,11 +479,10 @@ for block = startBlockNo:noBlocks
         disp(['Audio started at ', num2str(startTime-trialStart), ' secs after trial start']);
         disp(['(Target ITI was ', num2str(iti), ' secs)']);
 
-        % Wait for response 1 (target detection)
+        % Wait for response (target detection)
         respFlag = 0;
 
-        while GetSecs > startTime+totalDurCue(trial) ... % cue has ended
-                && GetSecs <= startTime+totalDurWithTarget(trial)+respInt % response interval hasn't ended
+        while GetSecs <= startTime+totalDurWithTarget(trial)+respInt % response interval hasn't ended
             [keyIsDown, respSecs, keyCode] = KbCheck;
             if keyIsDown % if subject responded
                 if find(keyCode) == keys.respTarget % and it was the detection button
@@ -525,6 +524,7 @@ for block = startBlockNo:noBlocks
             PsychPortAudio('Close');
             Screen('CloseAll');
             ShowCursor(screenNumber);
+            diary off
             return;
         end
 
@@ -603,6 +603,7 @@ for block = startBlockNo:noBlocks
             PsychPortAudio('Close');
             Screen('CloseAll');
             ShowCursor(screenNumber);
+            diary off
             return;
         end
     elseif block == noBlocks % if this was the last block
@@ -621,7 +622,7 @@ for block = startBlockNo:noBlocks
     end  % if last block
 
 end  % block for loop
-
+diary off
 % catch
 %     if flag.triggers
 %     % ppdev_mex('Close', 1);
