@@ -1,14 +1,20 @@
-function practiceMe
+function practiceMe(noTrials)
 % Familiarization phase for CherISH wp1 pilot
-% The listener practices target detection, and especially distance judgements.
+% After a headphone check, the listener practices target detection.
 
-% Feedback: accurate or inaccurate distance judgement; RT of target
+% Feedback: accurate or inaccurate response; RT of target
 % detection
-% Should happen at the beginning of each run (when sounds go back from loud
-% to soft), not in a separate script
+
+%% Headphone check
+flag.headphoneCheck = 0;
+
+if flag.headphoneCheck
+    headphoneCheck;
+end
 
 %% Find and load stimArray file
-stimArrayFileStruct = dir('stimArrayPractice.mat');
+% stimArrayFileStruct = dir('stimArrayPractice.mat');
+stimArrayFileStruct = dir('stimArray.mat');
 
 % if there was no stimArray file or there were multiple
 if isempty(stimArrayFileStruct) || length(stimArrayFileStruct)~=1
@@ -18,6 +24,9 @@ else
 end
 
 load(stimArrayFile, 'stimArray');
+audioColumn = 17;
+totalDurColumn = 3;
+targetColumn = 11;
 
 % get number of trials from stimuli array
 trialNo = size(stimArray, 1);
@@ -37,6 +46,7 @@ disp([char(10), 'Sorted stimuli into final stimArray']);
 
 % General init (AssertOpenGL, 'UnifyKeyNames')
 PsychDefaultSetup(1);
+Screen('Preference', 'SkipSyncTests', 1);
 
 % init PsychPortAudio with pushing for lowest possible latency
 InitializePsychSound(1);
@@ -50,7 +60,8 @@ fs = 44100;
 %
 tmpDevices = PsychPortAudio('GetDevices');
 for i = 1:numel(tmpDevices)
-    if strcmp(tmpDevices(i).DeviceName, 'Lautsprecher (RME Fireface UCX ')
+    % if strcmp(tmpDevices(i).DeviceName, 'Lautsprecher (RME Fireface UCX ')
+    if strcmp(tmpDevices(i).DeviceName, 'Speakers/Headphones (Realtek(R) Audio)')
         device = tmpDevices(i).DeviceIndex;
     end
 end
@@ -71,9 +82,9 @@ keys = struct;
 keys.abort = KbName('ESCAPE');
 keys.go = KbName('SPACE');
 keys.respTarget = KbName('RETURN');
-keys.respDistancePPS = KbName('1');
-keys.respDistanceARS = KbName('2');
-keys.respDistanceEPS = KbName('3');
+% keys.respDistancePPS = KbName('1');
+% keys.respDistanceARS = KbName('2');
+% keys.respDistanceEPS = KbName('3');
 % distanceResps = [keys.respDistancePPS keys.respDistanceARS keys.respDistanceEPS];
 
 % restrict keys to the ones we use
@@ -101,7 +112,7 @@ screenNumber=max(screens);  % look into XOrgConfCreator and XOrgConfSelector
 % set up alpha-blending for smooth (anti-aliased) lines
 Screen('BlendFunction', win, 'GL_SRC_ALPHA', 'GL_ONE_MINUS_SRC_ALPHA');
 % Setup the text type for the window
-Screen('TextFont', win, 'Ariel');
+Screen('TextFont', win, 'Arial');
 Screen('TextSize', win, 30);
 
 % set up a central fixation cross into a texture / offscreen window
@@ -136,8 +147,10 @@ PsychPortAudio('FillBuffer', pahandle, tmpBuffer);  % fill the buffer of audio d
 PsychPortAudio('Start', pahandle, 1);  % start immediately
 PsychPortAudio('Stop', pahandle, 1);  % stop when playback is over
 
-% set ITI
-iti = 0.6;  % in secs
+% set ITI and response interval  and feedback text duration (in secs)
+% iti = 3; 
+respInt = 1;
+fbDur = 2; 
 
 % set flag for aborting experiment
 abortFlag = 0;
@@ -148,7 +161,11 @@ ListenChar(-1);
 % realtime priority
 Priority(1);
 
-SPL = -30; % volume ctrl
+% Log accuracy and RT
+accuracy = zeros(1,noTrials);
+respTime = accuracy;
+
+% SPL = -30; % volume ctrl
 
 % user message
 disp([char(10), 'Initialized psychtoolbox basics, opened window, ',...
@@ -157,21 +174,14 @@ disp([char(10), 'Initialized psychtoolbox basics, opened window, ',...
 %% Instructions phase
 
 % instructions text
-instrText = ['For practice, you can listen to what tones sound like when they end at different distances. \n',...
-    'To request a sound ending at a specific distance category, press one of these keys \n',...
-    'on the number pad: \n\n',...
-    '1: uncomfortably close to my face \n',...
-    '2: not extremely close, but still within arm''s reach \n',...
-    '3: quite far, out of reach \n \n',...
-    'Press a key (1, 2 or 3) to listen.'];
+instrText = ['You will hear sounds moving in different directions. \n',...
+    'After some of these sounds, you will sometimes hear a brief target sound. \n\n',...
+    'Detect the target sound as quickly and accurately as possible: press ENTER if you heard it. \n',...
+    'Don''t press anything if you didn''t hear the target sound. \n\n',...
+    'Respond within 1 second after the target. \n\n', ...
+    '<Press SPACE to continue>'];
 
-taskText = ['Play me a sound that ends up: \n', '1: uncomfortably close to my face \n',...
-    '2: not extremely close, but still within arm''s reach \n',...
-    '3: quite far, out of reach \n \n',...
-    'Press a key (1, 2 or 3) to listen. \n\n',...
-    'If you''re done practicing, press ESCAPE.'];
-
-% write instructions to text
+% write instructions on the screen
 Screen('FillRect', win, backGroundColor);
 DrawFormattedText(win, instrText, 'center', 'center', textColor);
 Screen('Flip', win);
@@ -184,15 +194,7 @@ while 1
     [keyIsDown, ~, keyCode] = KbCheck;
     if keyIsDown
         % if subject is ready to start
-        if find(keyCode) == keys.respDistancePPS
-            nextTrial = 1;
-            break;
-        elseif find(keyCode) == keys.respDistanceARS
-            % if abort was requested
-            nextTrial = 2;
-            break;
-        elseif find(keyCode) == keys.respDistanceEPS
-            nextTrial = 3;
+        if find(keyCode) == keys.go
             break;
         elseif find(keyCode) == keys.abort
             abortFlag = 1;
@@ -213,18 +215,11 @@ if abortFlag
 end
 
 % user message
-if nextTrial==1
-    trialMessage = 'PPS';
-elseif nextTrial==2
-    trialMessage = 'ARS';
-elseif nextTrial==3
-    trialMessage = 'EPS';
-end
-disp([char(10), 'Subject requested a trial in ', trialMessage, ', we are starting...']);
+disp([char(10), 'Subject is ready to practice, we are starting...']);
 
 %% Loop of playing requested stimuli
 
-while 1  % until abort is requested
+for trial = 1:noTrials  
 
     % display fixation cross
     % background with fixation cross, get trial start timestamp
@@ -235,72 +230,115 @@ while 1  % until abort is requested
     % load a random but corresponding stimulus from the stimArray into
     % buffer
     randIdx = randi(length(stimArray),1);
-
-    while cell2mat(stimArray(randIdx,16)) ~= nextTrial
-        randIdx = randi(length(stimArray),1);
-    end
     
-    soundOutput = cell2mat(stimArray(randIdx,18));
-    soundOutput = soundOutput*10^(SPL/20);
-    totalDur = cell2mat(stimArray(randIdx,8));
-    buffer = PsychPortAudio('CreateBuffer', pahandle, soundOutput');
+    soundOutput = cell2mat(stimArray(randIdx,audioColumn));
+    % soundOutput = soundOutput*10^(SPL/20);
+    totalDur = cell2mat(stimArray(randIdx,totalDurColumn));
+    buffer = PsychPortAudio('CreateBuffer', pahandle, soundOutput);
     PsychPortAudio('FillBuffer', pahandle, buffer);
     % play stimulus - blocking start
-    startTime = PsychPortAudio('Start', pahandle, 1, trialStart+iti, 1);
+    startTime = PsychPortAudio('Start', pahandle, 1, trialStart+respInt, 1);
 
-    % wait till playback is over
-    WaitSecs('UntilTime', startTime+totalDur);
+            % Wait for response (target detection)
+        respFlag = 0;
 
-    % display text for subject about requesting next stimulus
-    Screen('FillRect', win, backGroundColor);
-    DrawFormattedText(win, taskText, 'center', 'center', textColor);
-    Screen('Flip', win);
-
-    % wait for key press to play next stimulus
-    while 1
-        [keyIsDown, ~, keyCode] = KbCheck;
-        if keyIsDown
-            % if subject is ready to start
-            if find(keyCode) == keys.respDistancePPS
-                nextTrial = 1;
-                break;
-            elseif find(keyCode) == keys.respDistanceARS
-                % if abort was requested
-                nextTrial = 2;
-                break;
-            elseif find(keyCode) == keys.respDistanceEPS
-                nextTrial = 3;
-                break;
-            elseif find(keyCode) == keys.abort
-                abortFlag = 1;
-                break;
+        while GetSecs <= startTime+totalDur+respInt % response interval hasn't ended
+            [keyIsDown, respSecs, keyCode] = KbCheck;
+            if keyIsDown % if subject responded
+                if find(keyCode) == keys.respTarget % and it was the detection button
+                    respFlag = 1;
+                    if cell2mat(stimArray(randIdx,targetColumn)) == 1 % and there is a target in the trial
+                        accuracy(trial) = 1;
+                    else
+                        accuracy(trial) = 0;
+                    end
+                    break;
+                elseif find(keyCode) == keys.abort % if it was the escape button
+                    abortFlag = 1;
+                    break;
+                end
+            else % if subject did not respond
+                if cell2mat(stimArray(randIdx,targetColumn)) == 0 % and there is no target in the trial
+                    accuracy(trial) = 1;
+                else
+                    accuracy(trial) = 0;
+                end
             end
         end
-    end
 
-    if abortFlag
-        disp('Terminating at user''s or subject''s request');
-        ListenChar(0);
-        Priority(0);
-        RestrictKeysForKbCheck([]);
-        PsychPortAudio('Close');
-        Screen('CloseAll');
-        ShowCursor(screenNumber);
-        return;
-    end
+        % if abort was requested, quit
+        if abortFlag
+            
+            ListenChar(0);
+            Priority(0);
+            RestrictKeysForKbCheck([]);
+            PsychPortAudio('Close');
+            Screen('CloseAll');
+            ShowCursor(screenNumber);
+            return;
+        end
 
-    % user message
-    if nextTrial==1
-        trialMessage = 'PPS';
-    elseif nextTrial==2
-        trialMessage = 'ARS';
-    elseif nextTrial == 3
-        trialMessage = 'EPS';
-    end
-    disp([char(10), 'Subject requested a trial in ', trialMessage, ', we are starting...']);
+        % switch visual right when the audio finishes
+        % Screen('Flip', win, startTime+totalDurWithTarget(trial)-0.5*ifi);
 
-    % only go on to next stimulus when keys are released
-    KbReleaseWait;
-end
+        % response time into results variable
+        if respFlag
+            respTime(trial) = 1000*(respSecs-(startTime+totalDur));
+        end
+
+        % user messages
+        if cell2mat(stimArray(randIdx,targetColumn)) == 1 % if it's a target trial
+            if isnan(respTime(trial))
+                disp('Subject did not respond in time');
+            else
+                disp(['RT: ', num2str(respTime(trial))]);
+            end
+        end
+
+        % participant feedback
+        if accuracy(trial) == 1
+            if cell2mat(stimArray(randIdx,targetColumn)) == 1 % there was a target
+                accMsg = 'Correct detection!';
+                rtMsg = ['Reaction time: ', num2str(respTime(trial)), ' ms'];
+                Screen('FillRect', win, backGroundColor);
+                DrawFormattedText(win, [accMsg, '\n', rtMsg], 'center', 'center', textColor);
+                Screen('Flip', win);
+                WaitSecs(fbDur);
+            else % if there was no target
+                accMsg = 'Correct, no target!';
+                Screen('FillRect', win, backGroundColor);
+                DrawFormattedText(win, accMsg, 'center', 'center', textColor);
+                Screen('Flip', win);
+                WaitSecs(fbDur);
+            end
+
+        elseif accuracy(trial) == 0
+            if cell2mat(stimArray(randIdx,targetColumn)) == 1 % there was a target
+                accMsg = 'Incorrect, there was a target!';
+                Screen('FillRect', win, backGroundColor);
+                DrawFormattedText(win, accMsg, 'center', 'center', textColor);
+                Screen('Flip', win);
+                WaitSecs(fbDur);
+            else % if there was no target
+                accMsg = 'Incorrect, there was no target!';
+                Screen('FillRect', win, backGroundColor);
+                DrawFormattedText(win, accMsg, 'center', 'center', textColor);
+                Screen('Flip', win);
+                WaitSecs(fbDur);
+            end
+
+        end % feedback loop
+
+end % trial loop
+
+DrawFormattedText(win, 'End of practice. This window closes soon...', 'center', 'center', textColor);
+Screen('Flip', win);
+WaitSecs(3);
+
+ListenChar(0);
+Priority(0);
+RestrictKeysForKbCheck([]);
+PsychPortAudio('Close');
+Screen('CloseAll');
 
 
