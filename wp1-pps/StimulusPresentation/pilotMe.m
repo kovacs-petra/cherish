@@ -209,8 +209,8 @@ logVar(2:end, strcmp(logHeader, 'trigger')) = num2cell(trig.stimType);
 % user message
 disp([char(10), 'Set up triggers']);
 
-% Set iti: M(SD) = 1500(100) ms, rounded to nearest 100
-iti = round((1500+100.*randn(1,length(stimArray))),-2);
+% Set iti: M(SD) = 1500(100) ms, rounded to nearest 100, in sec
+iti = round((1.5+0.1.*randn(1,length(stimArray))),1);
 
 % response time interval
 respInt = 1; 
@@ -349,7 +349,7 @@ for block = startBlockNo:noBlocks
 
     blockStartText = ['Beginning block ', num2str(block), '. \n\n',...
         intensityInfo, '\n',...
-        'As always in this round, there will be ', num2str(length(trialList)), ' trials in the block.\n\n\n',...
+        'There will be ', num2str(length(trialList)), ' trials in the block.\n\n\n',...
         'Ready? Press SPACE to begin.'];
 
     % uniform background
