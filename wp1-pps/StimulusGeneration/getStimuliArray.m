@@ -23,9 +23,9 @@ function stimArray = getStimuliArray
 %               need
 %
 
-folders = {'20-Feb-2025-1638','20-Feb-2025-1638_1','20-Feb-2025-1639',...
-        '20-Feb-2025-1640','20-Feb-2025-1640_1','20-Feb-2025-1640_2',...
-        '20-Feb-2025-1640_3','20-Feb-2025-1641'}; 
+folders = {'28-Feb-2025-139','28-Feb-2025-1310','28-Feb-2025-1311',...
+        '28-Feb-2025-1311_1','28-Feb-2025-1311_2','28-Feb-2025-1311_3',...
+        '28-Feb-2025-1311_4','28-Feb-2025-1311_5'}; 
 
 % check for existence of folders
 for i = 1:length(folders)
@@ -48,7 +48,7 @@ paramFields = {
     'frequency', ...         % Cue frequency in Hz
     'totalDur', ...          % Cue duration in s
     'durStatOnset', ...      % Duration of stationary onset in the cue
-    'durStatOffset', ...     % Duration of stationary offset in the cue
+    ...'durStatOffset', ...     % Duration of stationary offset in the cue
     'onsetDistance', ...     % Cue onset distance in m
     'offsetDistance', ...    % Cue offset distance in m
     'direction',...          % 1 - radial, 2 - angular
@@ -64,7 +64,7 @@ paramFields = {
 
 % output variable collecting stimuli sets
 stimArray = cell(length(folders), 1);
-repeat = 2; % repeat each stimulus in the stimArray
+repeat = 1; % repeat each stimulus in the stimArray
 
 for f = 1:length(folders)    
     disp([char(10), 'Loading params and audio from: ', folders{f}]);

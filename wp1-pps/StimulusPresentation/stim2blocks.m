@@ -59,7 +59,7 @@ disp([char(10), 'Called stim2blocks with input args: ',...
 %% Loading stimuli, sanity checks
 %%%%%% HARD-CODED VALUES %%%%%
 % number of expected cell columns for the stimuli array
-stimFeaturesNo = 17;
+stimFeaturesNo = 16;
 % header for final stimTypes cell array (see the last code block)
 stimTypesHdr = {'trajectory','target','offsetAzimuth','stimTypeIdx'};
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -86,9 +86,9 @@ disp([char(10), 'Loaded stimuli array, found ', num2str(trialNo), ' trials, ',..
 % get number of unique stimulus types based on trajectory, side, target presence
 
 %%%%%%%%%%%% HARD-CODED VALUES %%%%%%%%%%%
-trajectory = cell2mat(stimArray(:, 9));
-target = cell2mat(stimArray(:,11));
-offsetAzimuth = cell2mat(stimArray(:,10));
+trajectory = cell2mat(stimArray(:, 8));
+target = cell2mat(stimArray(:,10));
+offsetAzimuth = cell2mat(stimArray(:,9));
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % unique combinations

@@ -4,7 +4,7 @@ function generateStimuli(nStimuli,trajectory,offsetAzimuth)
 %
 % Inputs:
 % nStimuli      - integer, number of stimuli to generate in the given trajectory
-%                 (has to be divisible by 4 for counterbalancing)
+%                 (has to be an even number for counterbalancing)
 % trajectory    - 1: looming, 2: receding, 3: rotating near, 4: rotating
 %                 far
 % offsetAzimuth - of the cue, integer, e.g 90 or -90
@@ -18,11 +18,14 @@ function generateStimuli(nStimuli,trajectory,offsetAzimuth)
 % Author: Petra Kovacs, 2025
 
 %% Initial user message and input check
-if mod(nStimuli,4) ~= 0
-    error(['nStimuli has to be divisible by 4 to allow to counterbalance some parameters.', ...
-        ' Try 4 for debugging or 120 for a typical batch of stimuli.'])
+if mod(nStimuli,2) ~= 0
+    warning(['nStimuli has to be even to allow to counterbalance some parameters. ', ...
+        'I''m setting noBlocks to ',num2str(nStimuli+1),'!']);
+    nStimuli = nStimuli+1;
 elseif trajectory > 4
-    error('trajectory has to be an integer between 1 and 4');
+    disp('trajectory has to be an integer between 1 and 4, please try again.');
+    disp(newline, '1 - loom, 2 - recede, 3 - rotate in PPS, 4 - rotate in EPS');
+    trajectory = input(newline,'Input new trajectory here (1-4): ');
 end
 
 %% Initialize AMT 
@@ -82,7 +85,7 @@ mkdir(wavDir);
 % Representative distances of each space in meter:
 PPS = 0.2;
 EPS = 1.0;
-v = 0.5; % velocity in m/s
+% v = 0.5; % velocity in m/s
 
 % Save data about direction (radial or angular)
 if trajectory < 3
@@ -91,21 +94,32 @@ else
     direction = 2; % angular
 end
 
-%% Set values which have to be counterbalanced
-% Counterbalance target and no target
-targetTrial = [...
-    zeros(1,nStimuli/2), ...
-    ones(1,nStimuli/2)];
-% Counterbalance congruent and incongruent
-congruence = [...
-    zeros(1,nStimuli/4), ...
-    ones(1,nStimuli/4), ...
-    zeros(1,nStimuli/4), ...
-    ones(1,nStimuli/4)];
+%% Preset some values
+% Counterbalance target and no target + congruence-incongruence
+targetTrial = repmat([zeros(1),ones(1)],1,nStimuli/2); % 0101
+congruence = zeros(1,nStimuli);
+congruence(4:4:end) = 1;  %0001
+
+% Randomize the order of targetTrial and congruence (together)
+counterb = [targetTrial;congruence];
+counterb = counterb(:,randperm(length(counterb)));
+targetTrial = counterb(1,:);
+congruence = counterb(2,:);
 
 % Set placeholder for source intensity (will be set upon stimulus
 % presentation)
 sourceInt = zeros(1,nStimuli);
+
+% Set f0s and durations for stationary onsets to allow unique combos
+fS = linspace(200,1100,10);
+fOptions = repmat(fS,1,5);
+tOptions = zeros(1,length(fOptions));
+n = 0;
+
+for t = 0.4:0.1:0.8 % in sec
+tOptions(1,(1+n):(length(fS)+n)) = t; 
+n = n+length(fS);
+end
 
 %% Create a home for saved parameters
 outFields = {
@@ -113,7 +127,7 @@ outFields = {
     'frequency', ...         % Cue frequency in Hz
     'totalDur', ...          % Cue duration in s
     'durStatOnset', ...      % Duration of stationary onset in the cue
-    'durStatOffset', ...     % Duration of stationary offset in the cue
+    ...'durStatOffset', ...     % Duration of stationary offset in the cue
     'onsetDistance', ...     % Cue onset distance in m
     'offsetDistance', ...    % Cue offset distance in m
     'direction',...          % 1 - radial, 2 - angular
@@ -139,41 +153,43 @@ for stimNo = 1:nStimuli
     stimID = [num2str(trajectory),azID,stimNoID];
 
     % Randomize f0 for cleaner ERPs
-    frequency = (randi(6,1)+3)*100; % 400-900 Hz with round 100 values
+    frequency = fOptions(stimNo);
 
     % Set radii
     switch trajectory
         case 1 % Looming
             rOnset = [EPS EPS];  % stationary portion at the onset
-            rOffset = [PPS PPS]; % stationary portion at the offset
+            % rOffset = [PPS PPS]; % stationary portion at the offset
             rMoving = [EPS PPS]; % moving portion
 
         case 2 % Receding
             rOnset = [PPS PPS];  % stationary portion at the onset
-            rOffset = [EPS EPS]; % stationary portion at the offset
+            % rOffset = [EPS EPS]; % stationary portion at the offset
             rMoving = [PPS EPS]; % moving portion
 
         case 3 % Rotating near
             rOnset = [PPS PPS];  % stationary portion at the onset
-            rOffset = rOnset;    % stationary portion at the offset
+            % rOffset = rOnset;    % stationary portion at the offset
             rMoving = rOnset;    % moving portion
 
         case 4 % Rotating far
             rOnset = [EPS EPS];  % stationary portion at the onset
-            rOffset = rOnset;    % stationary portion at the offset
+            % rOffset = rOnset;    % stationary portion at the offset
             rMoving = rOnset;    % moving portion
     end
 
     %% Set durations
-    % Stationary portions: 500-800 ms with round 100 values, in s
-    durStatOnset = ((randi(4,1)+4)/10); 
-    durStatOffset = ((randi(4,1)+4)/10);
+    % Stationary portions
+    durStatOnset = tOptions(stimNo); 
+    % durStatOffset = ((randi(4,1)+4)/10);
 
     % Moving portion: duration calculated from distance and velocity
-    durMoving = abs(EPS-PPS)/v;
+    % durMoving = abs(EPS-PPS)/v;
+    durMoving = 2;
 
     % Calculate total duration 
-    totalDur = durStatOnset+durMoving+durStatOffset; % in s
+    % totalDur = durStatOnset+durMoving+durStatOffset; % in s
+    totalDur = durStatOnset+durMoving;
 
     % Elevation always 0
     ele = linspace(0,0,round(totalDur*fs));
@@ -181,25 +197,28 @@ for stimNo = 1:nStimuli
     %% Set distance trajectory vector based on the durations
     r = [linspace(rOnset(1), rOnset(2), durStatOnset*fs), ...
             linspace(rMoving(1), rMoving(2), durMoving*fs), ...
-            linspace(rOffset(1), rOffset(2), durStatOffset*fs)];
+            % linspace(rOffset(1), rOffset(2), durStatOffset*fs),...
+            ];
 
     %% Set azimuth trajectory
     if trajectory <= 2 % looming or receding
         azi = [linspace(offsetAzimuth, offsetAzimuth, durStatOnset*fs), ...
             linspace(offsetAzimuth, offsetAzimuth, durMoving*fs), ...
-            linspace(offsetAzimuth, offsetAzimuth, durStatOffset*fs)];
+            % linspace(offsetAzimuth, offsetAzimuth, durStatOffset*fs),...
+            ];
     elseif trajectory >= 3 % rotating near or far
         azi = [linspace(-offsetAzimuth, -offsetAzimuth, durStatOnset*fs), ...
             linspace(-offsetAzimuth, offsetAzimuth, durMoving*fs), ...
-            linspace(offsetAzimuth, offsetAzimuth, durStatOffset*fs)];        
+            % linspace(offsetAzimuth, offsetAzimuth, durStatOffset*fs),...
+            ];        
     end
 
     %% Generate triangle waves for each portion
     % For stationary portions
     tStatOnset = linspace(0,durStatOnset,durStatOnset*fs); % Time vector from 0 to dur with sampling interval 1/fs
     statOnset = sawtooth(2 * pi * frequency * tStatOnset, 0.5); % 0.5 for a symmetric triangular wave
-    tStatOffset = linspace(0,durStatOffset,durStatOffset*fs);
-    statOffset  = sawtooth(2 * pi * frequency * tStatOffset, 0.5);
+    % tStatOffset = linspace(0,durStatOffset,durStatOffset*fs);
+    % statOffset  = sawtooth(2 * pi * frequency * tStatOffset, 0.5);
 
     % For moving portion
     tMoving = linspace(0,durMoving,durMoving*fs);
@@ -218,7 +237,8 @@ for stimNo = 1:nStimuli
     target((end-rampSamples+1):end) = target((end-rampSamples+1):end)'.*rampOffset';
 
     %% Concatenate the sound portions and spatialize the stimuli
-    C = [statOnset moving statOffset]; % cue
+    % C = [statOnset moving statOffset]; % cue
+    C = [statOnset moving]; % cue
     win = tukeywin(size(C,2),(0.1*fs)/size(C,2)); % 0.1 s on-offset ramp
     C = C.*win';
 
@@ -296,7 +316,7 @@ for stimNo = 1:nStimuli
     save(strcat(filename,'.mat'), "out");
 
     % Add parameters to cell array for later saving
-    outCsv(stimNo+1, :) = {filename, frequency, totalDur, durStatOnset, durStatOffset,  rMoving(1), ...
+    outCsv(stimNo+1, :) = {filename, frequency, totalDur, durStatOnset, rMoving(1), ...
         rMoving(2), direction, trajectory, offsetAzimuth, targetTrial(stimNo),...
         congruence(stimNo), targetAzimuth, sourceInt(stimNo), stimID, fs};
 
