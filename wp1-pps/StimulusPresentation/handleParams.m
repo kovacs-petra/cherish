@@ -114,7 +114,7 @@ logHeader = {...
     'frequency', ...         % Cue frequency in Hz
     'totalDur', ...          % Cue duration in s
     'durStatOnset', ...      % Duration of stationary onset in the cue
-    'durStatOffset', ...     % Duration of stationary offset in the cue
+    ...'durStatOffset', ...     % Duration of stationary offset in the cue
     'onsetDistance', ...     % Cue onset distance in m
     'offsetDistance', ...    % Cue offset distance in m
     'direction',...          % 1 - radial, 2 - angular
@@ -264,7 +264,7 @@ disp([char(10), 'Loaded stimuli and saved out parameters/settings into params fi
 % attach stimulus type indices, block and trial indices to stimulus
 % array - but first a quick sanity check of stimArray size
 %%%%%% HARD-CODED VALUE %%%%%%
-cols = 17;
+cols = 16;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 if ~isequal(size(stimArray), [length(trialIdx), cols])
@@ -289,22 +289,22 @@ if ~logFileFlag
 
     % insert known columns in advance
     logVar(2:end, strcmp(logHeader, 'subNum'))          = num2cell(repmat(subNum, [size(stimArray, 1), 1]));  % subNum
-    logVar(2:end, strcmp(logHeader, 'blockNo'))         = stimArray(:, 19);
-    logVar(2:end, strcmp(logHeader, 'trialNo'))         = stimArray(:, 20);
-    logVar(2:end, strcmp(logHeader, 'stimID'))          = stimArray(:, 15);
+    logVar(2:end, strcmp(logHeader, 'blockNo'))         = stimArray(:, 18);
+    logVar(2:end, strcmp(logHeader, 'trialNo'))         = stimArray(:, 19);
+    logVar(2:end, strcmp(logHeader, 'stimID'))          = stimArray(:, 14);
     logVar(2:end, strcmp(logHeader, 'frequency'))       = stimArray(:, 2);
     logVar(2:end, strcmp(logHeader, 'totalDur'))        = stimArray(:, 3);  
     logVar(2:end, strcmp(logHeader, 'durStatOnset'))    = stimArray(:, 4);   
-    logVar(2:end, strcmp(logHeader, 'durStatOffset'))   = stimArray(:, 5);
-    logVar(2:end, strcmp(logHeader, 'onsetDistance'))   = stimArray(:, 6);
-    logVar(2:end, strcmp(logHeader, 'offsetDistance'))  = stimArray(:, 7);
-    logVar(2:end, strcmp(logHeader, 'direction'))       = stimArray(:, 8);
-    logVar(2:end, strcmp(logHeader, 'trajectory'))      = stimArray(:, 9);
-    logVar(2:end, strcmp(logHeader, 'offsetAzimuth'))   = stimArray(:, 10);
-    logVar(2:end, strcmp(logHeader, 'targetTrial'))     = stimArray(:, 11);
-    logVar(2:end, strcmp(logHeader, 'congruence'))      = stimArray(:, 12);
-    logVar(2:end, strcmp(logHeader, 'targetAzimuth'))   = stimArray(:, 13);
-    logVar(2:end, strcmp(logHeader, 'fs'))              = stimArray(:, 16);
+    % logVar(2:end, strcmp(logHeader, 'durStatOffset'))   = stimArray(:, 5);
+    logVar(2:end, strcmp(logHeader, 'onsetDistance'))   = stimArray(:, 5);
+    logVar(2:end, strcmp(logHeader, 'offsetDistance'))  = stimArray(:, 6);
+    logVar(2:end, strcmp(logHeader, 'direction'))       = stimArray(:, 7);
+    logVar(2:end, strcmp(logHeader, 'trajectory'))      = stimArray(:, 8);
+    logVar(2:end, strcmp(logHeader, 'offsetAzimuth'))   = stimArray(:, 9);
+    logVar(2:end, strcmp(logHeader, 'targetTrial'))     = stimArray(:, 10);
+    logVar(2:end, strcmp(logHeader, 'congruence'))      = stimArray(:, 11);
+    logVar(2:end, strcmp(logHeader, 'targetAzimuth'))   = stimArray(:, 12);
+    logVar(2:end, strcmp(logHeader, 'fs'))              = stimArray(:, 15);
 
 end
 

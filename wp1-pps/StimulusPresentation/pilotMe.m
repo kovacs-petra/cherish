@@ -160,9 +160,9 @@ end
 
 % Collect column numbers from the resulting stimArray
 %%%%%%% HARD-CODED VALUES %%%%%%%
-targetColumn = 11;
-audioColumn = 17;
-stimTypeColumn = 18;
+targetColumn = 10;
+audioColumn = 16;
+stimTypeColumn = 17;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % user message
@@ -172,7 +172,7 @@ disp([char(10), 'Ready to start the experiment']);
 totalDurCue = cell2mat(logVar(2:end, strcmp(logHeader, 'totalDur'))); % duration of cue (w/o target or gap)
 totalDurWithTarget = totalDurCue + 0.2; % in s
 durStatOnset = cell2mat(logVar(2:end, strcmp(logHeader, 'durStatOnset'))); % required for EEG triggering
-durStatOffset = cell2mat(logVar(2:end, strcmp(logHeader, 'durStatOffset'))); % for EEG triggering
+% durStatOffset = cell2mat(logVar(2:end, strcmp(logHeader, 'durStatOffset'))); % for EEG triggering
 
 % user message
 disp([char(10), 'Extracted stimulus features']);
@@ -185,7 +185,7 @@ trig.playbackStart = 210;
 trig.resp = 220;
 trig.blockStart = 100;
 trig.motionOnset = 280;
-trig.motionOffset = 290;
+% trig.motionOffset = 290;
 
 % triggers for stimulus types, based on the number of unique stimulus types
 % we assume that stimTypes is a cell array (with headers) that contains the
@@ -209,8 +209,8 @@ logVar(2:end, strcmp(logHeader, 'trigger')) = num2cell(trig.stimType);
 % user message
 disp([char(10), 'Set up triggers']);
 
-% Set iti 
-iti = 5;  % in secs
+% Set iti: M(SD) = 1500(100) ms, rounded to nearest 100
+iti = round((1500+100.*randn(1,length(stimArray))),-2);
 
 % response time interval
 respInt = 1; 
@@ -406,9 +406,6 @@ for block = startBlockNo:noBlocks
     % trial loop (over the trials for given block)
     for trial = min(trialList):max(trialList)
         
-        % Set random ITI 4000-5000 ms
-        iti = randi([40 50],1)/10; % in secs
-
         % relative trial number (trial in given block)
         trialCounterForBlock = trialCounterForBlock+1;
         
@@ -432,12 +429,12 @@ for block = startBlockNo:noBlocks
         PsychPortAudio('FillBuffer', pahandle, buffer(trialCounterForBlock));
 
         % wait till we are 100 ms from the start of the playback
-        while GetSecs-trialStart <= iti-100
+        while GetSecs-trialStart <= iti(trial)-100
             WaitSecs(0.001);
         end
 
         % blocking playback start for precision
-        startTime = PsychPortAudio('Start', pahandle, 1, trialStart+iti, 1);
+        startTime = PsychPortAudio('Start', pahandle, 1, trialStart+iti(trial), 1);
 
         if flag.triggers
             % playback start trigger
@@ -463,21 +460,21 @@ for block = startBlockNo:noBlocks
                 end
             end
 
-            % motion offset trigger
-            while 1
-                if GetSecs == startTime + totalDurCue(trial) - durStatOffset(trial)
-                    IOPort('Write', TB, uint8(trig.motionOffset),0);
-                    pause(0.01);
-                    IOPort('Write', TB, uint8(0),0);
-                    pause(0.01);
-                    break
-                end
-            end
+            % % motion offset trigger
+            % while 1
+            %     if GetSecs == startTime + totalDurCue(trial) - durStatOffset(trial)
+            %         IOPort('Write', TB, uint8(trig.motionOffset),0);
+            %         pause(0.01);
+            %         IOPort('Write', TB, uint8(0),0);
+            %         pause(0.01);
+            %         break
+            %     end
+            % end
         end
 
         % user message
         disp(['Audio started at ', num2str(startTime-trialStart), ' secs after trial start']);
-        disp(['(Target ITI was ', num2str(iti), ' secs)']);
+        disp(['(Target ITI was ', num2str(iti(trial)), ' secs)']);
 
         % Wait for response (target detection)
         respFlag = 0;
