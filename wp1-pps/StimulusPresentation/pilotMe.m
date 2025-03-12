@@ -24,33 +24,67 @@ flag.eyetrack = 0;
 sourceInt = [zeros(1,noBlocks/2), ones(1,noBlocks/2)];
 sourceInt = sourceInt(randperm(length(sourceInt)));
 
+%% Load/set params, stimuli, check for conflicts
+% Look for stimArray file in the subject's folder
+stimArrayName = 'stimArray.mat';
+stimArrayFileStruct = dir(stimArrayName);
+
+% if there was no stimArray file or there were multiple
+if isempty(stimArrayFileStruct) || length(stimArrayFileStruct)~=1
+    error(['Either found too many or no stimArrayFile at ./subject', num2str(subNum), '/stimArray*.mat !!!']);
+else
+    stimArrayFile = [stimArrayFileStruct.folder, '/', stimArrayFileStruct.name];
+end
+
+% user message
+disp([char(10), 'Loading params and stimuli, checking ',...
+    'for existing files for the subject']);
+
+% a function handles all stimulus sorting to blocks and potential conflicts
+% with earlier recordings for same subject
+[stimArray, ~, ~,...
+    startBlockNo, blockIdx, trialIdx,...
+    logVar, subLogF, returnFlag,...
+    logHeader, stimTypes] = handleParams(subNum, stimArrayFile, noBlocks);
+
+% if there was early return from expParamsHandler.m, abort
+if returnFlag
+    return
+end
+
+% Collect column numbers from the resulting stimArray
+%%%%%%% HARD-CODED VALUES %%%%%%%
+targetColumn = 10;
+audioColumn = 16;
+stimTypeColumn = 17;
+fsColumn = 15;
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+fs = stimArray(1,fsColumn);
+
+%% Stimulus features for triggers + logging
+totalDurCue = cell2mat(logVar(2:end, strcmp(logHeader, 'totalDur'))); % duration of cue (w/o target or gap)
+totalDurWithTarget = totalDurCue + 0.2; % in s
+durStatOnset = cell2mat(logVar(2:end, strcmp(logHeader, 'durStatOnset'))); % required for EEG triggering
+% durStatOffset = cell2mat(logVar(2:end, strcmp(logHeader, 'durStatOffset'))); % for EEG triggering
+
+% user message
+disp([char(10), 'Extracted stimulus features']);
+
 %% Initialize Psychtoolbox (screen and audio)
 PsychDefaultSetup(1);
 Screen('Preference', 'SkipSyncTests', 1);
 InitializePsychSound(1);
 
-% Get sampling rate from the hrtf file that was used for stimulus
-% generation
-if not(exist("SOFAdbPath.m","file"))
-    sofaPath = '\\kfs\fileserver\ProjektDaten\CherISH\code\SOFAtoolbox\SOFAtoolbox';
-    addpath(sofaPath);
-    SOFAstart;
-end
-database = 'scut';
-HRTFfilename = 'SCUT_KEMAR_radius_all.sofa';
-fullfn = fullfile(SOFAdbPath, 'database', database, HRTFfilename);
-Obj = SOFAload(fullfn);
-fs = Obj.Data.SamplingRate;
-
 % Select audio device
-% device = [];  % system default is our default as well
-tmpDevices = PsychPortAudio('GetDevices');
-for i = 1:numel(tmpDevices)
-    % if strcmp(tmpDevices(i).DeviceName, 'Lautsprecher (RME Fireface UCX ')
-    if strcmp(tmpDevices(i).DeviceName, 'Speakers/Headphones (Realtek(R) Audio)')
-        device = tmpDevices(i).DeviceIndex;
-    end
-end
+device = 3;  % system default is our default as well
+% tmpDevices = PsychPortAudio('GetDevices');
+% for i = 1:numel(tmpDevices)
+%     % if strcmp(tmpDevices(i).DeviceName, 'Headphones (Conexant HD Audio headphone)')
+%     % if strcmp(tmpDevices(i).DeviceName, 'Speakers/Headphones (Realtek(R) Audio)')
+%         % device = tmpDevices(i).DeviceIndex;
+%     end
+% end
 % mode is simple playback
 mode = 1;
 % reqlatencyclass is set to low-latency
@@ -85,8 +119,9 @@ GetSecs; WaitSecs(0.1); KbCheck();
 % screen params, screen selection
 backGroundColor = [0 0 0];
 textColor = [255 255 255];
-screens=Screen('Screens');
-screenNumber=max(screens);  % look into XOrgConfCreator and XOrgConfSelector
+% screens=Screen('Screens');
+% screenNumber=max(screens);  % look into XOrgConfCreator and XOrgConfSelector
+screenNumber = 1;
 
 % open stimulus window
 [win, rect] = Screen('OpenWindow', screenNumber, backGroundColor);
@@ -130,52 +165,9 @@ PsychPortAudio('FillBuffer', pahandle, tmpBuffer);  % fill the buffer of audio d
 PsychPortAudio('Start', pahandle, 1);  % start immediately
 PsychPortAudio('Stop', pahandle, 1);  % stop when playback is over
 
-% Look for stimArray file in the subject's folder
-stimArrayName = 'stimArray.mat';
-stimArrayFileStruct = dir(stimArrayName);
-
-% if there was no stimArray file or there were multiple
-if isempty(stimArrayFileStruct) || length(stimArrayFileStruct)~=1
-    error(['Either found too many or no stimArrayFile at ./subject', num2str(subNum), '/stimArray*.mat !!!']);
-else
-    stimArrayFile = [stimArrayFileStruct.folder, '/', stimArrayFileStruct.name];
-end
-
-%% Load/set params, stimuli, check for conflicts
-% user message
-disp([char(10), 'Loading params and stimuli, checking ',...
-    'for existing files for the subject']);
-
-% a function handles all stimulus sorting to blocks and potential conflicts
-% with earlier recordings for same subject
-[stimArray, ~, ~,...
-    startBlockNo, blockIdx, trialIdx,...
-    logVar, subLogF, returnFlag,...
-    logHeader, stimTypes] = handleParams(subNum, stimArrayFile, noBlocks);
-
-% if there was early return from expParamsHandler.m, abort
-if returnFlag
-    return
-end
-
-% Collect column numbers from the resulting stimArray
-%%%%%%% HARD-CODED VALUES %%%%%%%
-targetColumn = 10;
-audioColumn = 16;
-stimTypeColumn = 17;
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % user message
 disp([char(10), 'Ready to start the experiment']);
-
-%% Stimulus features for triggers + logging
-totalDurCue = cell2mat(logVar(2:end, strcmp(logHeader, 'totalDur'))); % duration of cue (w/o target or gap)
-totalDurWithTarget = totalDurCue + 0.2; % in s
-durStatOnset = cell2mat(logVar(2:end, strcmp(logHeader, 'durStatOnset'))); % required for EEG triggering
-% durStatOffset = cell2mat(logVar(2:end, strcmp(logHeader, 'durStatOffset'))); % for EEG triggering
-
-% user message
-disp([char(10), 'Extracted stimulus features']);
 
 %% Triggers
 % basic triggers for trial start, sound onset and response
@@ -479,36 +471,38 @@ for block = startBlockNo:noBlocks
         % Wait for response (target detection)
         respFlag = 0;
 
-        while GetSecs <= startTime+totalDurWithTarget(trial)+respInt % response interval hasn't ended
-            [keyIsDown, respSecs, keyCode] = KbCheck;
-            if keyIsDown % if subject responded
-                if find(keyCode) == keys.respTarget % and it was the detection button
-                    respFlag = 1;
-                    if cell2mat(stimArray(trial,targetColumn)) == 1 % and there is a target in the trial
+        % while GetSecs >= startTime+totalDurCue(trial) % cue has ended
+            while GetSecs <= startTime+totalDurWithTarget(trial)+respInt % response interval hasn't ended
+                [keyIsDown, respSecs, keyCode] = KbCheck;
+                if keyIsDown % if subject responded
+                    if find(keyCode) == keys.respTarget % and it was the detection button
+                        respFlag = 1;
+                        if cell2mat(stimArray(trial,targetColumn)) == 1 % and there is a target in the trial
+                            accuracy(trial) = 1;
+                        else
+                            accuracy(trial) = 0;
+                        end
+                        % response trigger
+                        if flag.triggers
+                            IOPort('Write',TB,uint8(trig.resp),0);
+                            pause(0.01);
+                            IOPort('Write', TB, uint8(0),0);
+                            pause(0.01);
+                        end
+                        break;
+                    elseif find(keyCode) == keys.abort % if it was the escape button
+                        abortFlag = 1;
+                        break;
+                    end
+                else % if subject did not respond
+                    if cell2mat(stimArray(trial,targetColumn)) == 0 % and there is no target in the trial
                         accuracy(trial) = 1;
                     else
                         accuracy(trial) = 0;
                     end
-                    % response trigger
-                    if flag.triggers
-                        IOPort('Write',TB,uint8(trig.resp),0);
-                        pause(0.01);
-                        IOPort('Write', TB, uint8(0),0);
-                        pause(0.01);
-                    end
-                    break;
-                elseif find(keyCode) == keys.abort % if it was the escape button
-                    abortFlag = 1;
-                    break;
-                end
-            else % if subject did not respond
-                if cell2mat(stimArray(trial,targetColumn)) == 0 % and there is no target in the trial
-                    accuracy(trial) = 1;
-                else
-                    accuracy(trial) = 0;
                 end
             end
-        end
+        % end
 
         % if abort was requested, quit
         if abortFlag
@@ -569,6 +563,7 @@ for block = startBlockNo:noBlocks
     if block ~= noBlocks
         % block ending text
         blockEndText = ['End of block ', num2str(block), '! \n\n\n',...
+            'You had ',num2str(blockAcc),'% correct responses in this block. \n',...
             'Your average reaction time in this block was ',num2str(round(blockRT, 2)), ' ms. \n\n\n',...
             'Press SPACE to begin next block.'];
         % uniform background
@@ -607,6 +602,7 @@ for block = startBlockNo:noBlocks
         % user message
         disp([char(10), 'The task has ended.']);
             blockEndText = ['End of last block. \n',...
+                'You had ',num2str(blockAcc),'% correct responses in this block. \n',...
                 'Your average reaction time in the last block was ',num2str(round(blockRT, 2)), ' ms. \n\n', ...
                 'This is the end of the experiment. This window closes soon...'];
         % uniform background
@@ -642,7 +638,6 @@ Priority(0);
 RestrictKeysForKbCheck([]);
 PsychPortAudio('Close');
 Screen('CloseAll');
-ShowCursor;
-
+ShowCursor;  
 return
 end
