@@ -1,5 +1,5 @@
 function generateStimuli(nStimuli,trajectory,offsetAzimuth)
-% Generate sound stimuli for wp1 pilot in four possible trajectories: looming,
+% Generate sound stimuli for CherISH wp1 in four possible trajectories: looming,
 % receding, rotating near, rotating far
 %
 % Inputs:
@@ -15,12 +15,15 @@ function generateStimuli(nStimuli,trajectory,offsetAzimuth)
 % Directory with the generated .mat files, named after the date and time
 % created
 %
-% Author: Petra Kovacs, 2025
+% #Author: Petra Kovacs, 2025, Acoustics Research Institute, Vienna, Austria
 
 %% Initial user message and input check
+disp(['The BRT Renderer App should be open for this. If it isn''t, ', newline,...
+    'it''s not too late to press Ctrl + C and rethink your life.',newline]);
+
 if mod(nStimuli,2) ~= 0
     warning(['nStimuli has to be even to allow to counterbalance some parameters. ', ...
-        'I''m setting noBlocks to ',num2str(nStimuli+1),'!']);
+        'I''m setting nStimuli to ',num2str(nStimuli+1),'!']);
     nStimuli = nStimuli+1;
 elseif trajectory > 4
     disp('trajectory has to be an integer between 1 and 4, please try again.');
@@ -35,34 +38,14 @@ if ~exist("amt_start.m","file")
     amt_start;
 end
 
-%% Load HRTF datasets for spatialization
+%% Load an HRTF dataset to determine the right sampling rate
 if ~exist("SOFAdbPath.m","file")
     sofaPath = '\\kfs\fileserver\ProjektDaten\CherISH\code\SOFAtoolbox\SOFAtoolbox';
     addpath(sofaPath);
     SOFAstart;
 end
-database = 'scut';
-switch trajectory
-    case 1 % looming
-        switch offsetAzimuth
-            case 90
-                HRTFfilename = 'HRTF_left.sofa';
-            case -90
-                HRTFfilename = 'HRTF_right.sofa';
-        end
-    case 2 % receding
-        switch offsetAzimuth
-            case 90
-                HRTFfilename = 'HRTF_left.sofa';
-            case -90
-                HRTFfilename = 'HRTF_right.sofa';
-        end
-    case 3 % rotating PPS
-        HRTFfilename = 'HRTF_PPS.sofa';
-    case 4 % rotating EPS
-        HRTFfilename = 'HRTF_EPS.sofa';
-end
-
+database = 'sadie';
+HRTFfilename = '3DTI_HRTF_SADIE_II_D2_256s_48000Hz_resampled5.sofa';
 fullfn = fullfile(SOFAdbPath, 'database', database, HRTFfilename);
 ObjCue = SOFAload(fullfn);
 fs = ObjCue.Data.SamplingRate;
@@ -98,7 +81,7 @@ end
 % Counterbalance target and no target + congruence-incongruence
 targetTrial = repmat([zeros(1),ones(1)],1,nStimuli/2); % 0101
 congruence = zeros(1,nStimuli);
-congruence(4:4:end) = 1;  %0001
+congruence(4:4:end) = 1;  % 0001
 
 % Randomize the order of targetTrial and congruence (together)
 counterb = [targetTrial;congruence];
@@ -111,14 +94,15 @@ congruence = counterb(2,:);
 sourceInt = zeros(1,nStimuli);
 
 % Set f0s and durations for stationary onsets to allow unique combos
-fS = linspace(200,1100,10);
-fOptions = repmat(fS,1,5);
-tOptions = zeros(1,length(fOptions));
+fmin = 310;
+fmax = 2*fmin; % 1 octave
+fShort = round(linspace(fmin,fmax,10),-1); % 10 unique f0 values
+fOptions = repmat(fShort,1,5); % repeated 5 times for the 5 unique duration values
+tOptions = zeros(1,length(fOptions)); % initialize vector for durations
 n = 0;
-
 for t = 0.4:0.1:0.8 % in sec
-tOptions(1,(1+n):(length(fS)+n)) = t; 
-n = n+length(fS);
+    tOptions(1,(1+n):(length(fShort)+n)) = t; % repeat each duration value for each f0 value
+    n = n+length(fShort);
 end
 
 %% Create a home for saved parameters
@@ -144,18 +128,40 @@ outFields = {
 outCsv = cell(nStimuli+1,length(outFields));
 outCsv(1,:) = outFields;
 
+%% Set connection between Matlab and BRT through OSC; set some settings
+% Priority(1); % high priority
+u = pnet('udpsocket',10017); % Listen port in BRT
+oscsend(u, '/control/connect', 'si', 'localhost',10019);
+oscsend(u, '/listener/enableSpatialization', 'sB', 'DefaultListener',1);
+oscsend(u, '/listener/enableInterpolation', 'sB', 'DefaultListener',1);
+oscsend(u, '/listener/enableNearFieldEffect', 'sB', 'DefaultListener',1);
+oscsend(u, '/listener/enableITD', 'sB', 'DefaultListener',1);
+oscsend(u, '/environment/enableModel', 'sB', 'FreeField',1);
+oscsend(u, '/environment/enableDirectPath', 'sB', 'FreeField',1);
+oscsend(u, '/environment/enableReverbPath', 'sB', 'FreeField',1);
+oscsend(u, '/listener/enableParallaxCorrection', 'sB', 'DefaultListener',1);
+oscsend(u, '/listener/enableModel', 'sB', 'DirectPath', 1);
+oscsend(u, '/listener/enableModel', 'sB', 'ReverbPath', 1);
+oscsend(u, '/environment/enablePropagationDelay', 'sB', 'FreeField', 1);
+oscsend(u, '/environment/enableDistanceAttenuation', 'sB', 'FreeField', 1);
+
 %% Stimulus generation loop
 for stimNo = 1:nStimuli
+
+    % Progress update
+    clc;
+    disp(['Processing stimulus ',num2str(stimNo),'/',num2str(nStimuli),'...']);
 
     % Set stimulus ID
     switch offsetAzimuth; case 90; azID = 'L'; case -90; azID = 'R'; end
     stimNoID = sprintf('%03d',stimNo);
     stimID = [num2str(trajectory),azID,stimNoID];
 
-    % Randomize f0 for cleaner ERPs
+    % Randomize f0 for cleaner ERPs (picked from previously set unique
+    % values)
     frequency = fOptions(stimNo);
 
-    % Set radii
+    % Set radii (distance trajectories)
     switch trajectory
         case 1 % Looming
             rOnset = [EPS EPS];  % stationary portion at the onset
@@ -180,7 +186,8 @@ for stimNo = 1:nStimuli
 
     %% Set durations
     % Stationary portions
-    durStatOnset = tOptions(stimNo); 
+    buffer = 1; % 1 s buffer for BRT artefacts
+    durStatOnset = tOptions(stimNo)+buffer; 
     % durStatOffset = ((randi(4,1)+4)/10);
 
     % Moving portion: duration calculated from distance and velocity
@@ -191,26 +198,24 @@ for stimNo = 1:nStimuli
     % totalDur = durStatOnset+durMoving+durStatOffset; % in s
     totalDur = durStatOnset+durMoving;
 
+    % Set rate for updating the sound position in BRT
+    updateRate = 2/1000; % every 2 ms
+
     % Elevation always 0
-    ele = linspace(0,0,round(totalDur*fs));
+    % ele = linspace(0,0,round(totalDur*fs));
+    eleC = linspace(0,0,round(totalDur/updateRate));
 
     %% Set distance trajectory vector based on the durations
-    r = [linspace(rOnset(1), rOnset(2), durStatOnset*fs), ...
-            linspace(rMoving(1), rMoving(2), durMoving*fs), ...
-            % linspace(rOffset(1), rOffset(2), durStatOffset*fs),...
-            ];
+    rC = [linspace(rOnset(1), rOnset(2), round(durStatOnset/updateRate)), ...
+            linspace(rMoving(1), rMoving(2), round(durMoving/updateRate))];
 
     %% Set azimuth trajectory
-    if trajectory <= 2 % looming or receding
-        azi = [linspace(offsetAzimuth, offsetAzimuth, durStatOnset*fs), ...
-            linspace(offsetAzimuth, offsetAzimuth, durMoving*fs), ...
-            % linspace(offsetAzimuth, offsetAzimuth, durStatOffset*fs),...
-            ];
-    elseif trajectory >= 3 % rotating near or far
-        azi = [linspace(-offsetAzimuth, -offsetAzimuth, durStatOnset*fs), ...
-            linspace(-offsetAzimuth, offsetAzimuth, durMoving*fs), ...
-            % linspace(offsetAzimuth, offsetAzimuth, durStatOffset*fs),...
-            ];        
+    if trajectory <= 2 % looming or receding: same azimuth throughout
+        aziC = [linspace(offsetAzimuth, offsetAzimuth, round(durStatOnset/updateRate)), ...
+            linspace(offsetAzimuth, offsetAzimuth, round(durMoving/updateRate))];
+    elseif trajectory >= 3 % rotating near or far: the laterality changes
+        aziC = [linspace(-offsetAzimuth, -offsetAzimuth, round(durStatOnset/updateRate)), ...
+            linspace(-offsetAzimuth, offsetAzimuth, round(durMoving/updateRate))];
     end
 
     %% Generate triangle waves for each portion
@@ -227,7 +232,7 @@ for stimNo = 1:nStimuli
     %% Generate targets
     targetITI = 0.1; % 100 ms
     target = sin(2*pi*2400*(0:(1/fs):targetITI-1/fs)); % 100 ms, 2400 Hz
-    gap = zeros(targetITI*fs,1);
+    gap = zeros(targetITI*fs,1); % silence
 
     % Ramp the target
     rampSamples = round(fs*0.01);
@@ -236,33 +241,70 @@ for stimNo = 1:nStimuli
     target(1:rampSamples) = target(1:rampSamples)'.*rampOnset';
     target((end-rampSamples+1):end) = target((end-rampSamples+1):end)'.*rampOffset';
 
-    %% Concatenate the sound portions and spatialize the stimuli
-    % C = [statOnset moving statOffset]; % cue
-    C = [statOnset moving]; % cue
+    %% Concatenate and spatialize the cue
+    % C = [statOnset moving statOffset];
+    C = [statOnset moving];
     win = tukeywin(size(C,2),(0.1*fs)/size(C,2)); % 0.1 s on-offset ramp
     C = C.*win';
 
-    % Spatialize cue
-    cue = local_SOFAspat(C',ObjCue,azi,ele,r);
+    % Save as wav (BRT needs it)
+    digits = ceil(log10(nStimuli + 1));
+    stimulusdigits = ceil(log10(stimNo + 1));
+    temp = char('');
+    for digind = 1:(digits-stimulusdigits)
+        temp = strcat(temp, '0');
+    end
+    filename = fullfile(pwd, strcat(wavDir, '/', wavDir, '-', temp, num2str(stimNo)));
+    wavname = strcat(filename,'.wav');   
+    audiowrite(wavname, C, fs); 
+    savenameC = strcat(filename,'.mat'); 
+
+    % Spatialize cue with BRT
+    [cueSpat, cueParams] = BRTspat(wavname,totalDur,aziC,eleC,rC,savenameC,updateRate,u);
+
+    % Cut off the onset and offset artefacts introduced by BRT during recording; 
+    % apply Tukey window on the cue
+
+    % Find the first value in the cue which is ~= to start position
+    switch trajectory
+        case {1,2} % loom, rec
+            idx = find(round(rMoving(1),1)==round(cueParams.rActual,1));
+        case {3,4} % rotate in PPS, EPS
+            idx = find(round(aziC(1),1)==round(rad2deg(cueParams.aziActual),1));
+    end
+    % idx(end) is the last indx in rActual which is = starting position,
+    % i.e. idx(end)+1 is where the sound starts to move
+    motionStart = cueParams.timeActual(length(idx)+1); % time in s
+
+    % Count back durStatOnset-buffer ms from this point and cut all before
+    % that point, then apply window
+    cueSpat = cueSpat(:,round((motionStart-durStatOnset+buffer)*fs):end);
+    win = tukeywin(size(cueSpat,2),(0.1*fs)/size(cueSpat,2)); % 0.1 s 
+    cueSpatWin = cueSpat.*repmat(win',2,1);
+
+    % Update duration data to exclude buffer
+    totalDur = length(cueSpatWin)/fs;
+    durStatOnset = durStatOnset-buffer;
 
     % Scale cue
     if trajectory < 4 % sound is in PPS at some point
-        scaledb = 20 * log10(1 / max(cue,[],"all")); % Scale to 1
+        scaledb = 20 * log10(1 / max(cueSpatWin,[],"all")); % Scale to 1
     else % sound is in EPS all the way
         scaleto = PPS/EPS;
-        scaledb = 20 * log10(scaleto / max(cue,[],"all")); % Scale to PPS/EPS (far sound is always softer)
+        scaledb = 20 * log10(scaleto / max(cueSpatWin,[],"all")); % Scale to PPS/EPS (far sound is always softer)
     end
-    scalecue1 = scaletodbspl(cue(:,1)',dbspl(cue(:,1)')+scaledb);
-    scalecue2 = scaletodbspl(cue(:,2)',dbspl(cue(:,2)')+scaledb);
-    scalecue = [scalecue1; scalecue2];
+    scalecue1 = scaletodbspl(cueSpatWin(1,:)',dbspl(cueSpatWin(1,:)')+scaledb);
+    scalecue2 = scaletodbspl(cueSpatWin(2,:)',dbspl(cueSpatWin(2,:)')+scaledb);
+    scalecue = [scalecue1 scalecue2];
 
+    %% Spatialize target separately, then concatenate with the cue
+    % Because BRT is not good for very short sounds like the target
     if targetTrial(stimNo) == 1
         T = [gap' target; gap' target]; % target
     else
         T = [gap' gap'; gap' gap']; % no target
     end
 
-    % Spatialize target separately, then concatenate
     if ~isequal(T,zeros(size(T))) % if there is a target
         % rTarget = linspace(mean([EPS,PPS]),mean([EPS,PPS]),(targetITI*fs)*2); % Target exactly between EPS and PPS
         rTarget = linspace(PPS,PPS,(targetITI*fs)*2); % target in PPS
@@ -271,38 +313,42 @@ for stimNo = 1:nStimuli
         % and incongruent (opposite of offset azimuth) half the time
         if congruence(stimNo) == 1
             targetAzimuth = offsetAzimuth;
-            ObjTarget = ObjCue; % same HRTF set
+            % ObjTarget = ObjCue; % same HRTF set
         else
             targetAzimuth = -offsetAzimuth;
-            switch targetAzimuth
-                case 90
-                    targetHRTF = 'HRTF_left.sofa';
-                case -90
-                    targetHRTF = 'HRTF_right.sofa';
-            end
-            % Load HRTF set for target
-            fullfnT = fullfile(SOFAdbPath, 'database', database, targetHRTF);
-            ObjTarget = SOFAload(fullfnT);
-
-            % Sanity check
-            if isequal(ObjTarget.Data.IR, ObjCue.Data.IR)
-                error('Wrong HRTF loaded for incongruent target.');
-            end
         end
+            
+        % switch targetAzimuth
+        %     case 90
+        %         targetHRTF = 'HRTF_left.sofa';
+        %     case -90
+        %         targetHRTF = 'HRTF_right.sofa';
+        % end
+
+        % Load HRTF set for target
+        fullfnT = fullfile(SOFAdbPath, 'database', database, '3DTI_HRTF_SADIE_II_D2_256s_48000Hz_resampled5.sofa');
+        ObjTarget = SOFAload(fullfnT);
+
+        % % Sanity check
+        % if isequal(ObjTarget.Data.IR, ObjCue.Data.IR)
+        %     error('Wrong HRTF loaded for incongruent target.');
+        % end
+        % end
 
         aziTarget = linspace(targetAzimuth,targetAzimuth,(targetITI*fs)*2);
-        targetStim = local_SOFAspat(T(1,:)',ObjTarget,aziTarget,ele,rTarget);
+        eleTarget = linspace(0,0,(targetITI*fs)*2);
+        targetStim = local_SOFAspat(T(1,:)',ObjTarget,aziTarget,eleTarget,rTarget);
         % stim = [cue' targetStim'];
 
         % Scale the target
-        scaledb = 20 * log10(1 / max(targetStim,[],"all")); % Target is always in PPS
-        scaletarget1 = scaletodbspl(targetStim(:,1)',dbspl(targetStim(:,1)')+scaledb);
-        scaletarget2 = scaletodbspl(targetStim(:,2)',dbspl(targetStim(:,2)')+scaledb);
-        scaletarget = [scaletarget1; scaletarget2];
-        out = [scalecue scaletarget];
+        scaledb = 20 * log10(1 / max(targetStim,[],"all")); % Target is always in PPS, scale to 1
+        scaletarget1 = scaletodbspl(targetStim(:,1)',dbspl(targetStim(:,1)')+scaledb); % target, channel 1
+        scaletarget2 = scaletodbspl(targetStim(:,2)',dbspl(targetStim(:,2)')+scaledb); % target, channel 2
+        scaletarget = [scaletarget1; scaletarget2]; % whole binaural target
+        out = [scalecue' scaletarget]; % whole binaural cue and target together
     else
         targetAzimuth = nan;
-        out = [scalecue T];
+        out = [scalecue' T]; % cue plus silence
     end % if there is a target
 
     % Save stimulus in .mat file
@@ -313,12 +359,14 @@ for stimNo = 1:nStimuli
         temp = strcat(temp, '0');
     end
     filename = strcat(wavDir, '/', wavDir, '-', temp, num2str(stimNo));
-    save(strcat(filename,'.mat'), "out");
+    save(strcat(filename,'.mat'), "out", "fs", "cueParams");
 
     % Add parameters to cell array for later saving
     outCsv(stimNo+1, :) = {filename, frequency, totalDur, durStatOnset, rMoving(1), ...
         rMoving(2), direction, trajectory, offsetAzimuth, targetTrial(stimNo),...
         congruence(stimNo), targetAzimuth, sourceInt(stimNo), stimID, fs};
+
+    WaitSecs(3); % avoid BRT crashing
 
 end % stimulus generation loop
 
