@@ -45,7 +45,10 @@ if ~exist("SOFAdbPath.m","file")
     SOFAstart;
 end
 database = 'sadie';
-HRTFfilename = '3DTI_HRTF_SADIE_II_D2_256s_48000Hz_resampled5.sofa';
+% HRTFfilename = '3DTI_HRTF_SADIE_II_D2_256s_48000Hz_resampled5.sofa';
+HRTFfilename = '3DTI_HRTF_SADIE_II_D2_256s_48000Hz.sofa';
+% database = 'scut';
+% HRTFfilename = 'HRTF_EPS.sofa';
 fullfn = fullfile(SOFAdbPath, 'database', database, HRTFfilename);
 ObjCue = SOFAload(fullfn);
 fs = ObjCue.Data.SamplingRate;
@@ -136,12 +139,12 @@ oscsend(u, '/listener/enableSpatialization', 'sB', 'DefaultListener',1);
 oscsend(u, '/listener/enableInterpolation', 'sB', 'DefaultListener',1);
 oscsend(u, '/listener/enableNearFieldEffect', 'sB', 'DefaultListener',1);
 oscsend(u, '/listener/enableITD', 'sB', 'DefaultListener',1);
-oscsend(u, '/environment/enableModel', 'sB', 'FreeField',1);
+oscsend(u, '/environment/enableModel', 'sB', 'FreeField',0);
 oscsend(u, '/environment/enableDirectPath', 'sB', 'FreeField',1);
-oscsend(u, '/environment/enableReverbPath', 'sB', 'FreeField',1);
+% oscsend(u, '/environment/enableReverbPath', 'sB', 'FreeField',0);
 oscsend(u, '/listener/enableParallaxCorrection', 'sB', 'DefaultListener',1);
 oscsend(u, '/listener/enableModel', 'sB', 'DirectPath', 1);
-oscsend(u, '/listener/enableModel', 'sB', 'ReverbPath', 1);
+% oscsend(u, '/listener/enableModel', 'sB', 'ReverbPath', 0);
 oscsend(u, '/environment/enablePropagationDelay', 'sB', 'FreeField', 1);
 oscsend(u, '/environment/enableDistanceAttenuation', 'sB', 'FreeField', 1);
 
@@ -151,15 +154,14 @@ for stimNo = 1:nStimuli
     % Progress update
     clc;
     disp(['Processing stimulus ',num2str(stimNo),'/',num2str(nStimuli),'...']);
-
-    % Set stimulus ID
-    switch offsetAzimuth; case 90; azID = 'L'; case -90; azID = 'R'; end
-    stimNoID = sprintf('%03d',stimNo);
-    stimID = [num2str(trajectory),azID,stimNoID];
-
+    
     % Randomize f0 for cleaner ERPs (picked from previously set unique
     % values)
     frequency = fOptions(stimNo);
+
+    % Set stimulus ID: trajectory, side, and f0 info
+    switch offsetAzimuth; case 90; azID = 'L'; case -90; azID = 'R'; end
+    stimID = [num2str(trajectory),azID,frequency];
 
     % Set radii (distance trajectories)
     switch trajectory
@@ -277,7 +279,7 @@ for stimNo = 1:nStimuli
     motionStart = cueParams.timeActual(length(idx)+1); % time in s
 
     % Count back durStatOnset-buffer ms from this point and cut all before
-    % that point, then apply window
+    % it, then apply window
     cueSpat = cueSpat(:,round((motionStart-durStatOnset+buffer)*fs):end);
     win = tukeywin(size(cueSpat,2),(0.1*fs)/size(cueSpat,2)); % 0.1 s 
     cueSpatWin = cueSpat.*repmat(win',2,1);
@@ -326,8 +328,8 @@ for stimNo = 1:nStimuli
         % end
 
         % Load HRTF set for target
-        fullfnT = fullfile(SOFAdbPath, 'database', database, '3DTI_HRTF_SADIE_II_D2_256s_48000Hz_resampled5.sofa');
-        ObjTarget = SOFAload(fullfnT);
+        % fullfnT = fullfile(SOFAdbPath, 'database', database, '3DTI_HRTF_SADIE_II_D2_256s_48000Hz_resampled5.sofa');
+        ObjTarget = ObjCue;
 
         % % Sanity check
         % if isequal(ObjTarget.Data.IR, ObjCue.Data.IR)

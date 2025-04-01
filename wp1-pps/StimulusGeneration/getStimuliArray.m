@@ -64,7 +64,7 @@ paramFields = {
 
 % output variable collecting stimuli sets
 stimArray = cell(length(folders), 1);
-repeat = 1; % repeat each stimulus in the stimArray
+repeat = 4; % repeat each stimulus in the stimArray
 
 for f = 1:length(folders)    
     disp([char(10), 'Loading params and audio from: ', folders{f}]);
