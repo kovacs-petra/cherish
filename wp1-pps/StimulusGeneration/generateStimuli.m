@@ -45,8 +45,8 @@ if ~exist("SOFAdbPath.m","file")
     SOFAstart;
 end
 database = 'sadie';
-% HRTFfilename = '3DTI_HRTF_SADIE_II_D2_256s_48000Hz_resampled5.sofa';
-HRTFfilename = '3DTI_HRTF_SADIE_II_D2_256s_48000Hz.sofa';
+HRTFfilename = '3DTI_HRTF_SADIE_II_D2_256s_48000Hz_resampled5.sofa';
+% HRTFfilename = '3DTI_HRTF_SADIE_II_D2_256s_48000Hz.sofa';
 % database = 'scut';
 % HRTFfilename = 'HRTF_EPS.sofa';
 fullfn = fullfile(SOFAdbPath, 'database', database, HRTFfilename);
@@ -139,14 +139,14 @@ oscsend(u, '/listener/enableSpatialization', 'sB', 'DefaultListener',1);
 oscsend(u, '/listener/enableInterpolation', 'sB', 'DefaultListener',1);
 oscsend(u, '/listener/enableNearFieldEffect', 'sB', 'DefaultListener',1);
 oscsend(u, '/listener/enableITD', 'sB', 'DefaultListener',1);
-oscsend(u, '/environment/enableModel', 'sB', 'FreeField',0);
-oscsend(u, '/environment/enableDirectPath', 'sB', 'FreeField',1);
-% oscsend(u, '/environment/enableReverbPath', 'sB', 'FreeField',0);
+oscsend(u, '/enableModel', 'sB', 'SDN',1);
+% oscsend(u, '/environment/enableDirectPath', 'sB', 'SDN',1);
+% oscsend(u, '/environment/enableReverbPath', 'sB', 'SDN',1);
 oscsend(u, '/listener/enableParallaxCorrection', 'sB', 'DefaultListener',1);
-oscsend(u, '/listener/enableModel', 'sB', 'DirectPath', 1);
-% oscsend(u, '/listener/enableModel', 'sB', 'ReverbPath', 0);
-oscsend(u, '/environment/enablePropagationDelay', 'sB', 'FreeField', 1);
-oscsend(u, '/environment/enableDistanceAttenuation', 'sB', 'FreeField', 1);
+oscsend(u, '/enableModel', 'sB', 'DirectPath', 1);
+oscsend(u, '/enableModel', 'sB', 'ReverbPath', 1);
+% oscsend(u, '/environment/enableDistanceAttenuation', 'sB', 'FreeField', 1);
+oscsend(u, '/environment/setShoeBoxRoom', 'sfff', 'SDN', 2.8, 4.1, 3); % dimensions of the brown lab
 
 %% Stimulus generation loop
 for stimNo = 1:nStimuli
@@ -262,6 +262,7 @@ for stimNo = 1:nStimuli
     savenameC = strcat(filename,'.mat'); 
 
     % Spatialize cue with BRT
+    % WaitSecs(1);
     [cueSpat, cueParams] = BRTspat(wavname,totalDur,aziC,eleC,rC,savenameC,updateRate,u);
 
     % Cut off the onset and offset artefacts introduced by BRT during recording; 

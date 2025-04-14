@@ -30,8 +30,10 @@ function [cueSpat, cueParams] = BRTspat(cue, totalDur, azi, ele, r, savename, up
 cueParams = struct; 
 
 %% Load and record cue
-oscsend(u, '/removeAllSources', 's', '');
-oscsend(u, '/source/loadSource', 'sss', 'Cue', cue, 'DirectivityModel'); 
+% oscsend(u,'/removeAllSources', 's', '');
+oscsend(u, '/source/loadSource', 'sssss', 'Cue', cue, 'DirectivityModel', 'DirectPath', 'ReverbPath'); 
+oscsend(u, '/source/setDirectivityTF', 'ss', 'Cue', 'DefaultDirectivityTF'); 
+oscsend(u, '/source/enableDirectivity', 'sB', 'Cue', 1); 
 
 % Set trajectory
 [x,y,z] = sph2cart(deg2rad(azi),deg2rad(ele),r);
@@ -40,7 +42,7 @@ steps = round(totalDur/updateRate);
 % Set start location
 start = 1;
 oscsend(u, '/source/location', 'sfff', 'Cue', x(start), y(start), z(start));
-WaitSecs(1); 
+WaitSecs(3); 
 
 % Start recording, then rapidly change location in a for loop
 oscsend(u, '/source/playAndRecord', 'sssf', 'Cue', savename, 'mat', totalDur);
