@@ -1,4 +1,4 @@
-function stimArray = getStimuliArray
+function stimArray = getStimuliArrayExt
 % Function to summarize CherISH pilot stimuli into one big stimuli mat file
 %
 % USAGE: stimArray = getStimuliArray(folders)
@@ -15,9 +15,7 @@ function stimArray = getStimuliArray
 %               need
 %
 
-folders = {'28-Feb-2025-139','28-Feb-2025-1310','28-Feb-2025-1311',...
-        '28-Feb-2025-1311_1','28-Feb-2025-1311_2','28-Feb-2025-1311_3',...
-        '28-Feb-2025-1311_4','28-Feb-2025-1311_5'}; 
+folders = {'14-Apr-2025-1642'}; 
 
 % check for existence of folders
 for i = 1:length(folders)
@@ -37,26 +35,16 @@ end
 % fields we expect in params files
 paramFields = {
     'filename', ...
-    'frequency', ...         % Cue frequency in Hz
-    'totalDur', ...          % Cue duration in s
-    'durStatOnset', ...      % Duration of stationary onset in the cue
-    ...'durStatOffset', ...     % Duration of stationary offset in the cue
-    'onsetDistance', ...     % Cue onset distance in m
-    'offsetDistance', ...    % Cue offset distance in m
-    'direction',...          % 1 - radial, 2 - angular
-    'trajectory', ...        % 1 - loom, 2 - rec, 3 - rotate near, 4 - rotate far
-    'offsetAzimuth', ...     % Side of the cue (at offset): 90 - left, -90 - right
-    'targetTrial', ...       % 1 - target trial, 0 - nontarget trial
-    'congruence', ...        % 1 - congruent target, 0 - incongruent target
-    'targetAzimuth', ...     % 90 or -90 (deg)
+    'f0', ...                % F0 in Hz
+    'dur', ...               % Duration in s
+    'distance', ...          % Distance in m
+    'azimuth', ...           % Side: 90 - left, -90 - right
     'sourceInt', ...         % 1 - high source intensity, 0 - low source intensity (placeholder)
-    'stimID', ...            % stimulus ID (which unique stimulus)
     'fs', ...                % sampling rate
 };
 
 % output variable collecting stimuli sets
 stimArray = cell(length(folders), 1);
-repeat = 4; % repeat each stimulus in the stimArray
 
 for f = 1:length(folders)    
     disp([char(10), 'Loading params and audio from: ', folders{f}]);
@@ -83,7 +71,6 @@ for f = 1:length(folders)
     % preallocate all memory we need to include the audio as well (add
     % extra column for raw audio data)
     myCell = [myCell, repmat({zeros(size(out))}, size(myCell, 1), 1)];    
-    myCell = [myCell; repmat(myCell,repeat,1)];
     
     %% Loop through mat files containing audio data   
     for audio = 1:size(myCell, 1)
@@ -103,7 +90,7 @@ end  % folders for loop
 stimArray = vertcat(stimArray{:});
 
 %% Ending
-stimArrayName = 'stimArray.mat';
+stimArrayName = 'stimArrayExt.mat';
 save(stimArrayName,"stimArray");
 disp([char(10), 'Finished, returning']);
 
