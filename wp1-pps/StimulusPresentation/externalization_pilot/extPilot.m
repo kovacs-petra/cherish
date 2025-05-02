@@ -123,7 +123,8 @@ Screen('Flip',w);
 
 %% define colors, sizes and positions
 % img of head
-[img, ~, alpha] = imread("C:\Users\pkovacs\Documents\GitHub\cherish\wp1-pps\StimulusPresentation\externalization_pilot\img\head_trialversion.png");
+path_head = "C:\Users\pkovacs\Documents\GitHub\cherish\wp1-pps\StimulusPresentation\externalization_pilot\img\head_trialversion.png";
+[img, ~, alpha] = imread(path_head);
 texture = Screen('MakeTexture', w, img);
 widthimg=1500;
 heightimg=100;
@@ -170,7 +171,8 @@ posimg3=[leftborderscale, heightS3-heightimg, leftborderscale+widthimg, heightS3
 posimg4=[leftborderscale, heightS4-heightimg, leftborderscale+widthimg, heightS4+heightimg];
 
 % sound symbol img
-[imgSymb, ~, alphasymb] = imread("C:\Users\pkovacs\Documents\GitHub\cherish\wp1-pps\StimulusPresentation\externalization_pilot\img\soundsymbol.png");
+path_symb = "C:\Users\pkovacs\Documents\GitHub\cherish\wp1-pps\StimulusPresentation\externalization_pilot\img\soundsymbol.png";
+[imgSymb, ~, alphasymb] = imread(path_symb);
 imgSymb(:, :, 4) = alphasymb;
 textureS = Screen('MakeTexture', w, imgSymb);
 
