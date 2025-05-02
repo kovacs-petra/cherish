@@ -29,7 +29,7 @@ nTrialsPerPage = 4; % how many trials on a page
 %% Initialize PsychPortAudio and Screen Number
 %%% Thanks to David Meijer for providing code
 
-InitializePsychSound(0); % 1 pushes for low latency
+InitializePsychSound(1); % 1 pushes for low latency
 
 %%%%%%%%%%%%%%%%%%%%%%%%%
 %%% Select sound card %%% OptionsDialog.m needed
@@ -126,27 +126,11 @@ if (size(screen_numbers,1) < computer_nr) || isempty(screen_numbers{computer_nr,
     screen_numbers{computer_nr,1} = S.screen_number;
 end
 
-pahandle = PsychPortAudio('Open', S.sound_device_idx, 1, 1, 48000, 2);
+fs = 48000;
+pahandle = PsychPortAudio('Open', S.sound_device_idx, 1, 1, fs, 2);
 PsychDefaultSetup(2);
 Screen('Preference', 'SkipSyncTests', 1);
-InitializePsychSound(1);
-
-% % Select audio device
-% device = [];
-% % tmpDevices = PsychPortAudio('GetDevices');
-% % for i = 1:numel(tmpDevices)
-% %     % if strcmp(tmpDevices(i).DeviceName, 'Headphones (Conexant HD Audio headphone)')
-% %     if strcmp(tmpDevices(i).DeviceName, 'Speakers/Headphones (Realtek(R) Audio)')
-% %         device = tmpDevices(i).DeviceIndex;
-% %     end
-% % end
-% % mode is simple playback
-% mode = 1;
-% % reqlatencyclass is set to low-latency
-% reqLatencyClass = 2;
-% % 2 channels output
-% nrChannels = 2;
-% fs = 48e3;
+% InitializePsychSound(1);
 
 % user message
 disp([char(10), 'Set audio parameters']);
@@ -168,11 +152,6 @@ RestrictKeysForKbCheck(keysVector);
 % Force costly mex functions into memory to avoid latency later on
 GetSecs; WaitSecs(0.1); KbCheck();
 
-% % open PsychPortAudio device for playback
-% pahandle = PsychPortAudio('Open', device, mode, reqLatencyClass, fs, nrChannels);
-% % get and display device status
-% pahandleStatus = PsychPortAudio('GetStatus', pahandle);
-% disp([char(10), 'PsychPortAudio device status: ']);
 % disp(pahandleStatus);
 
 % initial start & stop of audio device to avoid potential initial latencies
@@ -243,8 +222,6 @@ sizebutton=100;
 widthscale=1500;
 colscale=[0,0,0];
 startheightbutton=100;
-% startheightbutton=200;
-% distancebuttons=320;
 distancebuttons=250;
 heightscale=10;
 widthslider=5;
@@ -281,7 +258,7 @@ textureS = Screen('MakeTexture', w, imgSymb);
 %% experiment
 % wait for key after instructions
 while ~KbCheck; end
-WaitSecs(0.6)
+WaitSecs(0.6);
 
 %% Frequencies
 fmin = 310;
@@ -294,9 +271,7 @@ goodIdxs = [1,2,5,6,7,8,9,10];
 stimStruct.stim = stimStruct.stim(goodIdxs,:,:);
 Freqs=Freqs(Freqs~=380); Freqs=Freqs(Freqs~=410);
 nF0 = 8;
-% Freqs = Freqs(randperm(numel(Freqs))); % randomize
 constantf0 = Freqs(round(nF0/2));
-% constantf0 = 410;
 
 %% Azimuths
 Azimuths = [90,-90];
@@ -400,19 +375,7 @@ for pp = 1:(nTrials/nTrialsPerPage) % Page
     Screen('Flip', w, 0, 1);
     WaitSecs(5);
     Screen('TextSize',w,defaultTxtSize);
-    end
-
-
-    % % write f0 information if it has changed
-    % if pp == 1 || f0conds(pp) ~= f0conds(pp-1)
-    %     if f0conds(pp) == 0
-    %         f0Info = 'Die Tonquelle bleibt jetzt immer gleich...';
-    %         disp('Constant F0 starting.')
-    %     else
-    %         f0Info = 'Die Tonquelle ändert sich jetzt immer...';
-    %         disp('Variable F0 starting.')
-    %     end
-    % end    
+    end  
 
     Screen('FillRect', w ,colBG, [0 0 screenXpix screenYpix]);
 
@@ -507,19 +470,19 @@ for pp = 1:(nTrials/nTrialsPerPage) % Page
                 if y > heightB1 && y < heightB1+sizebutton
                     PsychPortAudio('FillBuffer', pahandle, soundG');
                     PsychPortAudio('Start', pahandle, 1, 0, 1);
-                    WaitSecs(0.5)
+                    WaitSecs(0.5);
                 elseif y > heightB2 && y < heightB2+sizebutton
                     PsychPortAudio('FillBuffer', pahandle, soundB');
                     PsychPortAudio('Start', pahandle, 1, 0, 1);
-                    WaitSecs(0.5)
+                    WaitSecs(0.5);
                 elseif y > heightB3 && y < heightB3+sizebutton
                     PsychPortAudio('FillBuffer', pahandle, soundR');
                     PsychPortAudio('Start', pahandle, 1, 0, 1);
-                    WaitSecs(0.5)
+                    WaitSecs(0.5);
                 elseif y > heightB4 && y < heightB4+sizebutton
                     PsychPortAudio('FillBuffer', pahandle, soundY');
                     PsychPortAudio('Start', pahandle, 1, 0, 1);
-                    WaitSecs(0.5)
+                    WaitSecs(0.5);
                 end
             end
         end
@@ -532,7 +495,7 @@ for pp = 1:(nTrials/nTrialsPerPage) % Page
 
     save(['ext_resp_' num2str(subNum)],'resp');
     uu=uu+4; % trial counter
-    pause(1)
+    WaitSecs(1);
 end % page
 
 results.participant=subNum;
@@ -549,270 +512,3 @@ WaitSecs(3);
 PsychPortAudio('Close', pahandle);
 sca;
 end % function
-
-%% Blocks loop
-
-% start from the block specified by the parameters/settings parts
-%     for block = startBlockNo:noBlocks
-%
-%         % If low source intensity block, scale down
-%         if sourceInt(block) == 0
-%             SPL = db(0.2);
-%             disp('Low intensity block');
-%         else
-%             SPL = db(1);
-%             disp('High intensity block');
-%         end
-%
-%         % uniform background
-%         Screen('FillRect', win, backGroundColor);
-%         Screen('Flip', win);
-%
-%         % wait for releasing keys before going on
-%         releaseStart = GetSecs;
-%         KbReleaseWait([], releaseStart+2);
-%
-%         % fill a dynamic buffer with data for whole block
-%         % get trial index list for current block
-%         trialList = trialIdx(blockIdx==block);
-%         buffer = [];
-%         for trial = min(trialList):max(trialList)
-%             audioData = stimStruct{trial, audioColumn};
-%             % Intensity roving:
-%             audioData = 10^(SPL/20)*audioData;
-%             buffer(end+1) = PsychPortAudio('CreateBuffer', [], audioData');
-%         end
-%
-%         % counter for trials in given block
-%         trialCounterForBlock = 0;
-%
-%         % user message
-%         disp([char(10), 'Buffered all stimuli for block ', num2str(block),...
-%             ', showing block start message']);
-%
-%         % block starting text
-%         if sourceInt(block) == 0
-%             intensityInfo = 'This block will have relatively soft sounds.';
-%         else
-%             intensityInfo = 'This block will have relatively loud sounds.';
-%         end
-%
-%         blockStartText = ['Beginning block ', num2str(block), '. \n\n',...
-%             intensityInfo, '\n',...
-%             'There will be ', num2str(length(trialList)), ' trials in the block.\n\n\n',...
-%             'Ready? Press SPACE to begin.'];
-%
-%         % uniform background
-%         Screen('FillRect', win, backGroundColor);
-%         % draw block-starting text
-%         DrawFormattedText(win, blockStartText, 'center', 'center', textColor);
-%         Screen('Flip', win);
-%         % wait for key press to start
-%         while 1
-%             [keyIsDown, ~, keyCode] = KbCheck;
-%             if keyIsDown
-%                 % if subject is ready to start
-%                 if find(keyCode) == keys.go
-%                     break;
-%                 elseif find(keyCode) == keys.abort
-%                     abortFlag = 1;
-%                     break;
-%                 end
-%             end
-%         end
-%
-%         if abortFlag
-%             if flag.triggers
-%                 % ppdev_mex('Close', 1);
-%                 IOport('Close',TB);
-%             end
-%             ListenChar(0);
-%             Priority(0);
-%             RestrictKeysForKbCheck([]);
-%             PsychPortAudio('Close');
-%             Screen('CloseAll');
-%             ShowCursor(screenNumber);
-%             diary off
-%             return;
-%         end
-%
-%         %% Trials loop
-%         % trial loop (over the trials for given block)
-%         for trial = min(trialList):max(trialList)
-%
-%             % relative trial number (trial in given block)
-%             trialCounterForBlock = trialCounterForBlock+1;
-%
-%             % background with fixation cross, get trial start timestamp
-%             Screen('CopyWindow', fixCrossWin, win);
-%             Screen('DrawingFinished', win);
-%             trialStart = Screen('Flip', win);
-%
-%             % user message
-%             disp([char(10), 'Starting trial ', num2str(trialCounterForBlock)]);
-%
-%             % fill audio buffer with next stimuli
-%             PsychPortAudio('FillBuffer', pahandle, buffer(trialCounterForBlock));
-%
-%             % wait till we are 100 ms from the start of the playback
-%             while GetSecs-trialStart <= iti-100
-%                 WaitSecs(0.001);
-%             end
-%
-%             % blocking playback start for precision
-%             startTime = PsychPortAudio('Start', pahandle, 1, trialStart+iti, 1);
-%
-%             % user message
-%             disp(['Audio started at ', num2str(startTime-trialStart), ' secs after trial start']);
-%             disp(['(Target ITI was ', num2str(iti), ' secs)']);
-%
-%             % Wait for sound to end, then display 3AFC prompt
-%             WaitSecs(totalDur(trial));
-%             promptText = ['How far was the sound? \n\n',...
-%                 '1 - in my head \n 2 - close to my ear \n 3 - farther from my ear'];
-%             Screen('FillRect', win, backGroundColor);
-%             DrawFormattedText(win, promptText, 'center', 'center', textColor);
-%             Screen('Flip', win);
-%
-%             % Wait for response (target detection)
-%             respFlag = 0;
-%             while GetSecs <= startTime+totalDur(trial)+respInt % response interval hasn't ended
-%                 [keyIsDown, ~, keyCode] = KbCheck;
-%                 if keyIsDown % if subject responded
-%                     if ismember(find(keyCode),respKeys) % and it was a response button
-%                         respFlag = 1;
-%                         response(trial) = str2double(KbName(find(keyCode)));
-%                         if find(keyCode) == keys.intern % if response was in-the-head
-%                             if cell2mat(stimStruct(trial,distanceColumn)) == 0 % and distance is 0
-%                                 accuracy(trial) = 1;
-%                             else
-%                                 accuracy(trial) = 0;
-%                             end
-%                         elseif find(keyCode) == keys.near % if response was 20 cm
-%                             if cell2mat(stimStruct(trial,distanceColumn)) == 0.2 % and distance is 20 cm
-%                                 accuracy(trial) = 1;
-%                             else
-%                                 accuracy(trial) = 0;
-%                             end
-%                         elseif find(keyCode) == keys.far % if response is 1 m
-%                             if cell2mat(stimStruct(trial,distanceColumn)) == 1 % and distance is 1 m
-%                                 accuracy(trial) = 1;
-%                             else
-%                                 accuracy(trial) = 0;
-%                             end
-%                         end
-%                         break;
-%                     elseif find(keyCode) == keys.abort % if it was the escape button
-%                         abortFlag = 1;
-%                         break;
-%                     end
-%                 end
-%             end
-%             % if abort was requested, quit
-%             if abortFlag
-%                 ListenChar(0);
-%                 Priority(0);
-%                 RestrictKeysForKbCheck([]);
-%                 PsychPortAudio('Close');
-%                 Screen('CloseAll');
-%                 ShowCursor(screenNumber);
-%                 diary off
-%                 return;
-%             end
-%
-%             % user messages
-%             if isnan(accuracy(trial))
-%                 disp('Subject did not respond in time');
-%             else
-%                 disp(['Distance: ', num2str(cell2mat(stimStruct(trial,distanceColumn))),' m']);
-%                 disp(['Response: ', num2str(response(trial))]);
-%                 disp(['Accuracy: ', num2str(accuracy(trial))]);
-%             end
-%
-%             % Cumulative accuracy and RT in block
-%             blockAcc = sum(accuracy(trial-trialCounterForBlock+1:trial), 'omitnan')/trialCounterForBlock*100;
-%             disp(['Overall accuracy in block so far is ', num2str(blockAcc), '%']);
-%
-%             % accumulating results in logging / results variable
-%             logVar(trial+1,strcmp(logHeader, 'sourceInt')) = {sourceInt(block)};
-%             logVar(trial+1,strcmp(logHeader, 'accuracy')) = {accuracy(trial)};
-%             logVar(trial+1,strcmp(logHeader, 'response')) = {response(trial)};
-%
-%             % save logging/results variable
-%             if f0cond == 1
-%                 save(subLogF1, 'logVar');
-%             elseif f0cond == 2
-%                 save(subLogF2, 'logVar');
-%             end
-%
-%         end  % trial for loop
-%
-%         % user messages
-%         disp([char(10), char(10), 'Block no. ', num2str(block), ' has ended,'...
-%             'showing block-ending text to participant']);
-%         disp([char(10), 'Overall accuracy in block was ', num2str(blockAcc),'%']);
-%
-%         %% Feedback to subject at the end of block
-%         % if not last block
-%         if block ~= noBlocks
-%             % block ending text
-%             blockEndText = ['End of block ', num2str(block), '! \n\n\n',...
-%                 'You had ',num2str(blockAcc),'% correct responses in this block. \n',...
-%                 'Press SPACE to begin next block.'];
-%             % uniform background
-%             Screen('FillRect', win, backGroundColor);
-%             % draw block-starting text
-%             DrawFormattedText(win, blockEndText, 'center', 'center', textColor);
-%             Screen('Flip', win);
-%             % wait for key press to start
-%             while 1
-%                 [keyIsDown, ~, keyCode] = KbCheck;
-%                 if keyIsDown
-%                     % if subject is ready to start
-%                     if find(keyCode) == keys.go
-%                         break;
-%                     elseif find(keyCode) == keys.abort
-%                         abortFlag = 1;
-%                         break;
-%                     end
-%                 end
-%             end
-%             if abortFlag
-%                 ListenChar(0);
-%                 Priority(0);
-%                 RestrictKeysForKbCheck([]);
-%                 PsychPortAudio('Close');
-%                 Screen('CloseAll');
-%                 ShowCursor(screenNumber);
-%                 diary off
-%                 return;
-%             end
-%         elseif block == noBlocks % if this was the last block
-%             % user message
-%             disp([char(10), 'The task has ended.']);
-%             blockEndText = ['End of last block. \n',...
-%                 'You had ',num2str(blockAcc),'% correct responses in this block. \n',...
-%                 'We can take a break...'];
-%             % uniform background
-%             Screen('FillRect', win, backGroundColor);
-%             % draw block-starting text
-%             DrawFormattedText(win, blockEndText, 'center', 'center', textColor);
-%             Screen('Flip', win);
-%             WaitSecs(5);
-%
-%         end  % if last block
-%
-%     end  % block for loop
-% end % round for loop
-% diary off
-%
-% %% Ending, cleaning up
-% ListenChar(0);
-% Priority(0);
-% RestrictKeysForKbCheck([]);
-% PsychPortAudio('Close');
-% Screen('CloseAll');
-% ShowCursor;
-% return
-%
-% end % function
