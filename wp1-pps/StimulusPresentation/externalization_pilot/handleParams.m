@@ -1,7 +1,7 @@
 function [stimArray, sortIndices, startTrialNo,... 
     startBlockNo, blockIdx, trialIdx,...
-    logVar, subLogF, returnFlag, logHeader,...
-    stimTypes] = handleParams(subNum, stimArrayFile, noBlocks)
+    logVar, subLogF1, subLogF2, returnFlag, logHeader,...
+    stimTypes] = handleParams(subNum, f0cond, stimArrayFile, noBlocks)
 %% Function handling parameters/settings, stimuli and conflicts
 %
 % USAGE: [stimArray, sortIndices, startTrialNo,... 
@@ -56,7 +56,6 @@ function [stimArray, sortIndices, startTrialNo,...
 %               stim2blocks.m
 %
 
-
 %% Input checks
 
 if nargin < 3
@@ -94,9 +93,11 @@ stimArray = []; sortIndices = []; stimTypes = [];
 % subject folder name
 dirN = ['subject', num2str(subNum)];
 % subject parameters/settings file
-subParamsF = [dirN, '/sub', num2str(subNum), 'Params.mat'];
+subParamsF1 = [dirN, '/sub', num2str(subNum), 'Params1.mat'];
+subParamsF2 = [dirN, '/sub', num2str(subNum), 'Params2.mat'];
 % subject log file
-subLogF = [dirN, '/sub', num2str(subNum), 'Log.mat'];
+subLogF1 = [dirN, '/sub', num2str(subNum), 'Log1.mat'];
+subLogF2 = [dirN, '/sub', num2str(subNum), 'Log2.mat'];
 % date and time of starting with a subject
 c = clock; d = date; %#ok<*DATE,*CLOCK>
 timestamp = {[d, '-', num2str(c(4)), num2str(c(5))]};
@@ -115,8 +116,7 @@ logHeader = {...
     'azimuth', ...    % Azimuth angle: 90 - left, -90 - right
     'sourceInt', ...  % 1 - high source intensity, 0 - low source intensity (placeholder)
     'fs', ...         % sampling rate
-    'round', ...
-    'f0condition',... % 1 - constant f0, 0 - variable f0
+    'f0condition',... % 1 - constant f0, 2 - variable f0 (order counterbalanced)
     'accuracy', ...
     'response', ...
     'trigger', ...
@@ -125,21 +125,43 @@ logHeader = {...
 if exist(dirN, 'dir')
     % if there is a parameter file, check if it is compatible with current
     % input args
-    if exist(subParamsF, 'file') 
-        oldParams = load(subParamsF);
-        oldParamsFileFlag = 1;
-        % check if the parameters are compatible with current input args
-        if isequal(oldParams.stimArrayFile, stimArrayFile) && isequal(oldParams.noBlocks, noBlocks) && ...
-                isequal(oldParams.subNum, subNum)
-            oldParamsMatchFlag = 1;
-            % check if there is also a log file
-            if exist(subLogF, 'file')
-                oldLog = load(subLogF);
-                % check if stored log is expected format - sane header?
-                % no. of rows equals expected number of trials + 1?
-                if isequal(oldLog.logVar(1, :), logHeader) && isequal(size(oldLog.logVar, 1), size(oldParams.trialIdx, 1)+1)
-                    logFileFlag = 1;
-                    logVar = oldLog.logVar;
+    if f0cond == 1
+        if exist(subParamsF1, 'file')
+            oldParams = load(subParamsF1);
+            oldParamsFileFlag = 1;
+            % check if the parameters are compatible with current input args
+            if isequal(oldParams.stimArrayFile, stimArrayFile) && isequal(oldParams.noBlocks, noBlocks) && ...
+                    isequal(oldParams.subNum, subNum)
+                oldParamsMatchFlag = 1;
+                % check if there is also a log file
+                if exist(subLogF1, 'file')
+                    oldLog = load(subLogF1);
+                    % check if stored log is expected format - sane header?
+                    % no. of rows equals expected number of trials + 1?
+                    if isequal(oldLog.logVar(1, :), logHeader) && isequal(size(oldLog.logVar, 1), size(oldParams.trialIdx, 1)+1)
+                        logFileFlag = 1;
+                        logVar = oldLog.logVar;
+                    end
+                end
+            end
+        end
+    elseif f0cond == 2
+        if exist(subParamsF2, 'file')
+            oldParams = load(subParamsF2);
+            oldParamsFileFlag = 1;
+            % check if the parameters are compatible with current input args
+            if isequal(oldParams.stimArrayFile, stimArrayFile) && isequal(oldParams.noBlocks, noBlocks) && ...
+                    isequal(oldParams.subNum, subNum)
+                oldParamsMatchFlag = 1;
+                % check if there is also a log file
+                if exist(subLogF2, 'file')
+                    oldLog = load(subLogF2);
+                    % check if stored log is expected format - sane header?
+                    % no. of rows equals expected number of trials + 1?
+                    if isequal(oldLog.logVar(1, :), logHeader) && isequal(size(oldLog.logVar, 1), size(oldParams.trialIdx, 1)+1)
+                        logFileFlag = 1;
+                        logVar = oldLog.logVar;
+                    end
                 end
             end
         end
@@ -245,11 +267,20 @@ elseif oldParamsMatchFlag
 end
 
 % save / re-save basic params
-save(subParamsF, 'trialIdx', 'blockIdx', 'stimTypes', 'stimTypeIdx',... 
+if f0cond == 1
+    save(subParamsF1, 'trialIdx', 'blockIdx', 'stimTypes', 'stimTypeIdx',...
+        'randomseed', 'stimArrayFile', 'timestamp', 'noBlocks', 'subNum');
+elseif f0cond == 2
+    save(subParamsF2, 'trialIdx', 'blockIdx', 'stimTypes', 'stimTypeIdx',... 
     'randomseed', 'stimArrayFile', 'timestamp', 'noBlocks', 'subNum');
+end
 
 % user message
-disp([char(10), 'Loaded stimuli and saved out parameters/settings into params file ', subParamsF]); 
+if f0cond == 1
+    disp([char(10), 'Loaded stimuli and saved out parameters/settings into params file ', subParamsF1]);
+elseif f0cond == 2
+    disp([char(10), 'Loaded stimuli and saved out parameters/settings into params file ', subParamsF2]);
+end
 
 % attach stimulus type indices, block and trial indices to stimulus
 % array - but first a quick sanity check of stimArray size
@@ -279,6 +310,7 @@ if ~logFileFlag
 
     % insert known columns in advance
     logVar(2:end, strcmp(logHeader, 'subNum'))          = num2cell(repmat(subNum, [size(stimArray, 1), 1]));  
+    logVar(2:end, strcmp(logHeader, 'f0condition'))     = num2cell(repmat(f0cond, [size(stimArray, 1), 1]));  
     logVar(2:end, strcmp(logHeader, 'blockNo'))         = stimArray(:, 10);
     logVar(2:end, strcmp(logHeader, 'trialNo'))         = stimArray(:, 11);
     logVar(2:end, strcmp(logHeader, 'f0'))              = stimArray(:, 2);

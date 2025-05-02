@@ -15,7 +15,7 @@ function stimArray = getStimuliArrayExt
 %               need
 %
 
-folders = {'14-Apr-2025-1642'}; 
+folders = {'17-Apr-2025-102_500'}; 
 
 % check for existence of folders
 for i = 1:length(folders)
@@ -90,7 +90,7 @@ end  % folders for loop
 stimArray = vertcat(stimArray{:});
 
 %% Ending
-stimArrayName = 'stimArrayExt.mat';
+stimArrayName = 'stimArrayExt997.mat';
 save(stimArrayName,"stimArray");
 disp([char(10), 'Finished, returning']);
 
