@@ -27,6 +27,107 @@ nTrialsPerSI = nTrialsPerF0/2; % how many trials per source intensity condition
 nTrialsPerPage = 4; % how many trials on a page
 
 %% Initialize Psychtoolbox (screen and audio)
+%% Initialize PsychPortAudio and Screen Number
+%%% Thanks to David Meijer for providing code
+
+InitializePsychSound(0); % 1 pushes for low latency
+
+%%%%%%%%%%%%%%%%%%%%%%%%%
+%%% Select sound card %%% OptionsDialog.m needed
+%%%%%%%%%%%%%%%%%%%%%%%%%
+
+computer_IDs = {};
+sound_cards = {};
+screen_numbers = {};
+
+%On what computer are we?
+S.computer_ID = getenv('computername');
+computer_matches = cellfun(@(x) strcmp(x,S.computer_ID),computer_IDs);
+if any(computer_matches)
+    computer_nr = find(computer_matches);
+else
+    computer_nr = numel(computer_IDs)+1;
+    computer_IDs{end+1,1} = S.computer_ID;
+end
+
+
+%Retrieve all available sound devices
+sound_devices = PsychPortAudio('GetDevices');
+for i=1:numel(sound_devices)
+    full_name_audioDevices{i} = [num2str(sound_devices(i).DeviceIndex), '. ', sound_devices(i).HostAudioAPIName, ' - ', ...
+        sound_devices(i).DeviceName, ' - NrOfOutputChan = ', num2str(sound_devices(i).NrOutputChannels)];
+    full_name_audioDevices{i} = regexprep(full_name_audioDevices{i},'[\n\r]+','');  %Erase newlines and carriage returns
+end
+
+%Check if the saved audiocard for this computer still exists, if so set as default
+sound_card_default = 0;
+if (size(sound_cards,1) >= computer_nr) && ~isempty(sound_cards{computer_nr,1})
+    if any(cellfun(@(x) strcmp(x,sound_cards{computer_nr,1}),full_name_audioDevices))
+        sound_card_default = find(cellfun(@(x) strcmp(x,sound_cards{computer_nr,1}),full_name_audioDevices));
+    end
+end
+
+%If no known sound card was found, default to a Windows WASAPI sound card if available
+if ~sound_card_default
+    WASAPI_devices = strfind(full_name_audioDevices, 'WASAPI');             %cell-array with indices of characters of where 'WASAPI' was found in full_name_audioDevices
+    Loudspeaker_devices = strfind(full_name_audioDevices, 'Lautsprecher'); % keep only multi-channel (termed Lautsprecher)
+    first_WASAPI_Lsp_device = find(and(cellfun(@(x) ~isempty(x),WASAPI_devices),cellfun(@(x) ~isempty(x),Loudspeaker_devices)),1); %first device with WASAPI and Lautsprecher in the name
+    if ~isempty(first_WASAPI_Lsp_device)
+        sound_card_default = first_WASAPI_Lsp_device;
+    else
+        sound_card_default = 1;                                             %Default to first sound card if WASAPI was not found
+    end
+end
+
+%Let the user select the appropriate sound card
+[selected_option,continueBool] = OptionsDialog(full_name_audioDevices,sound_card_default,'Sound Card','Select the sound card');
+if ~continueBool
+    error('Program is aborted');                        %dialog window was closed
+end
+S.sound_card = full_name_audioDevices{selected_option};
+S.sound_device_idx = sound_devices(selected_option).DeviceIndex;
+
+if strcmp(getenv('computername'),'EXPGRUEN')  % Manually overwrite the default sampling rate on the lab computer (default is 44100, but that leads to auditory delays relative to visual)
+    S.sound_sample_rate = 48000;
+else
+    S.sound_sample_rate = sound_devices(selected_option).DefaultSampleRate;
+end
+
+%If this sound_card was not known yet, then remember it for this computer
+if (size(sound_cards,1) < computer_nr) || isempty(sound_cards{computer_nr,1}) || ~strcmp(S.sound_card,sound_cards{computer_nr,1})
+    sound_cards{computer_nr,1} = S.sound_card;
+end
+
+%%%%%%%%%%%%%%%%%%%%%
+%%% Select screen %%% OptionsDialog.m needed
+%%%%%%%%%%%%%%%%%%%%%
+
+available_screens = Screen('Screens');
+
+%Check if the saved screen_number is available to set as default choice
+screen_number_default = NaN;
+if (size(screen_numbers,1) >= computer_nr) && ~isempty(screen_numbers{computer_nr,1})
+    if ismember(screen_numbers{computer_nr,1},available_screens)
+        screen_number_default = find(screen_numbers{computer_nr,1} == available_screens);
+    end
+end
+if isnan(screen_number_default)
+    screen_number_default = numel(available_screens);
+end
+
+%Let the user select the appropriate screen number
+[selected_option,continueBool] = OptionsDialog(num2cell(available_screens),screen_number_default,'Screen Number','Select the screen number');
+if ~continueBool
+    error('Program is aborted');                                            %dialog window was closed
+end
+S.screen_number = available_screens(selected_option);
+
+%If this screen_number was not known yet, then remember it for this computer
+if (size(screen_numbers,1) < computer_nr) || isempty(screen_numbers{computer_nr,1}) || ~strcmp(S.screen_number,screen_numbers{computer_nr,1})
+    screen_numbers{computer_nr,1} = S.screen_number;
+end
+
+    pahandle = PsychPortAudio('Open', S.sound_device_idx, 1, 1, fs, 2);
 PsychDefaultSetup(2);
 Screen('Preference', 'SkipSyncTests', 1);
 InitializePsychSound(1);
