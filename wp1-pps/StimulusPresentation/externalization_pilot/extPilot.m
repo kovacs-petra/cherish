@@ -26,7 +26,6 @@ nTrialsPerF0 = nTrials/2; % how many trials in an f0 condition
 nTrialsPerSI = nTrialsPerF0/2; % how many trials per source intensity condition
 nTrialsPerPage = 4; % how many trials on a page
 
-%% Initialize Psychtoolbox (screen and audio)
 %% Initialize PsychPortAudio and Screen Number
 %%% Thanks to David Meijer for providing code
 
@@ -127,27 +126,27 @@ if (size(screen_numbers,1) < computer_nr) || isempty(screen_numbers{computer_nr,
     screen_numbers{computer_nr,1} = S.screen_number;
 end
 
-    pahandle = PsychPortAudio('Open', S.sound_device_idx, 1, 1, fs, 2);
+pahandle = PsychPortAudio('Open', S.sound_device_idx, 1, 1, 48000, 2);
 PsychDefaultSetup(2);
 Screen('Preference', 'SkipSyncTests', 1);
 InitializePsychSound(1);
 
-% Select audio device
-device = [];
-% tmpDevices = PsychPortAudio('GetDevices');
-% for i = 1:numel(tmpDevices)
-%     % if strcmp(tmpDevices(i).DeviceName, 'Headphones (Conexant HD Audio headphone)')
-%     if strcmp(tmpDevices(i).DeviceName, 'Speakers/Headphones (Realtek(R) Audio)')
-%         device = tmpDevices(i).DeviceIndex;
-%     end
-% end
-% mode is simple playback
-mode = 1;
-% reqlatencyclass is set to low-latency
-reqLatencyClass = 2;
-% 2 channels output
-nrChannels = 2;
-fs = 48e3;
+% % Select audio device
+% device = [];
+% % tmpDevices = PsychPortAudio('GetDevices');
+% % for i = 1:numel(tmpDevices)
+% %     % if strcmp(tmpDevices(i).DeviceName, 'Headphones (Conexant HD Audio headphone)')
+% %     if strcmp(tmpDevices(i).DeviceName, 'Speakers/Headphones (Realtek(R) Audio)')
+% %         device = tmpDevices(i).DeviceIndex;
+% %     end
+% % end
+% % mode is simple playback
+% mode = 1;
+% % reqlatencyclass is set to low-latency
+% reqLatencyClass = 2;
+% % 2 channels output
+% nrChannels = 2;
+% fs = 48e3;
 
 % user message
 disp([char(10), 'Set audio parameters']);
@@ -169,12 +168,12 @@ RestrictKeysForKbCheck(keysVector);
 % Force costly mex functions into memory to avoid latency later on
 GetSecs; WaitSecs(0.1); KbCheck();
 
-% open PsychPortAudio device for playback
-pahandle = PsychPortAudio('Open', device, mode, reqLatencyClass, fs, nrChannels);
-% get and display device status
-pahandleStatus = PsychPortAudio('GetStatus', pahandle);
-disp([char(10), 'PsychPortAudio device status: ']);
-disp(pahandleStatus);
+% % open PsychPortAudio device for playback
+% pahandle = PsychPortAudio('Open', device, mode, reqLatencyClass, fs, nrChannels);
+% % get and display device status
+% pahandleStatus = PsychPortAudio('GetStatus', pahandle);
+% disp([char(10), 'PsychPortAudio device status: ']);
+% disp(pahandleStatus);
 
 % initial start & stop of audio device to avoid potential initial latencies
 tmpSound = zeros(2, fs/10);  % silence
@@ -191,14 +190,14 @@ load(stimArrayFile, 'stimStruct');
 
 %% Initialize the graphical interface for Psychtoolbox
 colBG=[200 200 200];
-screens=Screen('Screens');
-screenNumber=max(screens);
+% screens=Screen('Screens');
+% screenNumber=max(screens);
 
 % ignore screen warning
 % PsychDefaultSetup(2); % makes sure Screen is functional and unifies keyCodes across OS
-[w,rect] = Screen('OpenWindow',screenNumber, colBG);
+[w,rect] = Screen('OpenWindow',S.screen_number, colBG);
 % debugRect = [10 10 400 1200];
-%     [w,rect] = Screen('OpenWindow',screenNumber,colBG,debugRect);
+%     [w,rect] = Screen('OpenWindow',S.screen_number,colBG,debugRect);
 %     ShowCursor;
 
 [screenXpix,screenYpix] = Screen('WindowSize', w);
