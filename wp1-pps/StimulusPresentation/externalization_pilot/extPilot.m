@@ -7,17 +7,17 @@ function extPilot(subNum)
 %   - subNum:   subject number, integer
 %
 % - Distance judgement task with a GUI
-% - Stimuli are presented on pages, every page contains 3 sounds that can be
+% - Stimuli are presented on pages, every page contains 4 sounds that can be
 % played by the listener. Each sound on a page has a different distance
-% (out of 4 options: in the head, 20 cm, 60 cm, 1 m)
-% - Source intensity changes every 4 pages and the listener is informed about
+% (options: in the head, 20 cm, 30/50/70/90 cm, 1 m)
+% - Source intensity changes every 8 pages and the listener is informed about
 % this.
 % - First half of the experiment has variable f0, second half constant f0, or
-% the other way round.
+% the other way round - listener also informed.
 % - Stimuli have to be arranged in an f0s X distances X azimuths cell
 % array, with each cell containing the audio (2 channels) in position 1 and
 % the specific distance in position 2
-%
+%                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       
 % Author: Petra Kovacs, 2025
 
 %% Set trial number info
