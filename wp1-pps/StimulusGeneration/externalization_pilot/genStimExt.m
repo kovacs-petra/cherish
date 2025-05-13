@@ -15,7 +15,7 @@ function stimStruct = genStimExt(dur,f0)
 %
 %% Preset values for binaural stimuli
 % No. of stimuli and conditons
-nF0 = 10; % unique f0 values
+nF0 = 8; % unique f0 values
 nD = 7; % unique distance values
 nSide = 2; % unique azimuth values
 nStimuli = nF0*nD*nSide;
@@ -24,11 +24,12 @@ stimStruct.stim = cell(nF0,nD,nSide);
 % Distances (m)
 in = 0;
 PPS = 0.2;
-EPS = 1;
-dOptions = [in,PPS,EPS,0.3:0.2:0.9];  % 1st three columns: the fixed
-                                      % distances we want to use in the
-                                      % experiment.
-                                      % Then, the distances inbetween.
+EPS = 2;
+dOptions = [in,PPS,EPS,round(linspace(PPS+0.2,EPS-0.2,nD-3),1)];  
+                                              % 1st three columns: the fixed
+                                              % distances we want to use in the
+                                              % experiment.
+                                              % Then, the distances inbetween.
 
 % Azimuths (deg)
 % aziOptions = repmat([90,-90],1,nBinauralStimuli/nSide);
@@ -160,11 +161,11 @@ for ff = 1:length(fOptions)
 
                     %% Spatialize with BRT
                     oscsend(u,'/removeAllSources', 's', '');
-                    oscsend(u, '/source/loadSource', 'sss', 'source', wavname, 'DirectivityModel');
+                    oscsend(u, '/source/loadSource', 'sss', 'source', wavname, 'DirectivityModel'); WaitSecs(1);
                     [x,y,z] = sph2cart(deg2rad(azi),deg2rad(ele),r);
-                    oscsend(u, '/source/location', 'sfff', 'source', x, y, z); WaitSecs(2);
+                    oscsend(u, '/source/location', 'sfff', 'source', x, y, z); WaitSecs(5);
                     oscsend(u, '/source/playAndRecord', 'sssf', 'source', savename, 'mat', dur+buffer); WaitSecs(3);
-                    oscsend(u, '/stop', 's', ''); WaitSecs(1);
+                    oscsend(u, '/stop', 's', ''); WaitSecs(3);
 
                     %% Create output
                     params.sofa = load(savename);
@@ -196,7 +197,7 @@ for ff = 1:length(fOptions)
                     end
                     filename = strcat(wavDir, '/', wavDir, '-', temp, num2str(stimNo));
                     save(strcat(filename,'.mat'), "out", "fs");
-                    WaitSecs(3); % avoid BRT crashing
+                    WaitSecs(4); % avoid BRT crashing
 
             elseif r == in
                     %% Window and stereo

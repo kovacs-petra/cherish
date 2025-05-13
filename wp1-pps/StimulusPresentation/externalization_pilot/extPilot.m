@@ -9,11 +9,9 @@ function extPilot(subNum)
 % - Distance judgement task with a GUI
 % - Stimuli are presented on pages, every page contains 4 sounds that can be
 % played by the listener. Each sound on a page has a different distance
-% (options: in the head, 20 cm, 30/50/70/90 cm, 1 m)
-% - Source intensity changes every 8 pages and the listener is informed about
+% (options: in the head, 20 cm, 40/90/130/180 cm, 2 m)
+% - Source intensity changes at halftime and the listener is informed about
 % this.
-% - First half of the experiment has variable f0, second half constant f0, or
-% the other way round - listener also informed.
 % - Stimuli have to be arranged in an f0s X distances X azimuths cell
 % array, with each cell containing the audio (2 channels) in position 1 and
 % the specific distance in position 2
@@ -21,9 +19,9 @@ function extPilot(subNum)
 % Author: Petra Kovacs, 2025
 
 %% Set trial number info
-nTrials = 128; % how many trials in total
-nTrialsPerF0 = nTrials/2; % how many trials in an f0 condition
-nTrialsPerSI = nTrialsPerF0/2; % how many trials per source intensity condition
+nTrials = 112; % how many trials in total
+% nTrialsPerF0 = nTrials/2; % how many trials in an f0 condition
+nTrialsPerSI = nTrials/2; % how many trials per source intensity condition
 nTrialsPerPage = 4; % how many trials on a page
 
 %% Initialize PsychPortAudio and Screen Number
@@ -162,15 +160,13 @@ PsychPortAudio('Start', pahandle, 1);  % start immediately
 PsychPortAudio('Stop', pahandle, 1);  % stop when playback is over
 
 %% Open the stimuli structure
-stimArrayName = 'stimStruct.mat';
+stimArrayName = 'stimStruct2.mat';
 stimArrayFileStruct = dir(stimArrayName);
 stimArrayFile = [stimArrayFileStruct.folder, '/', stimArrayFileStruct.name];
-load(stimArrayFile, 'stimStruct');
+load(stimArrayFile, 'stimStruct2');
 
 %% Initialize the graphical interface for Psychtoolbox
 colBG=[200 200 200];
-% screens=Screen('Screens');
-% screenNumber=max(screens);
 
 % ignore screen warning
 % PsychDefaultSetup(2); % makes sure Screen is functional and unifies keyCodes across OS
@@ -202,8 +198,8 @@ Screen('Flip',w);
 
 %% define colors, sizes and positions
 % img of head
-% path_head = "C:\Users\pkovacs\Documents\GitHub\cherish\wp1-pps\StimulusPresentation\externalization_pilot\img\head_trialversion.png";
-path_head = "C:\Users\experimentator.KFS\Documents\cherish\wp1-pps\StimulusPresentation\externalization_pilot\img\head_trialversion.png";
+path_head = "C:\Users\pkovacs\Documents\GitHub\cherish\wp1-pps\StimulusPresentation\externalization_pilot\img\head.png";
+% path_head = "C:\Users\experimentator.KFS\Documents\cherish\wp1-pps\StimulusPresentation\externalization_pilot\img\head_trialversion.png";
 [img, ~, alpha] = imread(path_head);
 texture = Screen('MakeTexture', w, img);
 widthimg=1500;
@@ -249,11 +245,22 @@ posimg3=[leftborderscale, heightS3-heightimg, leftborderscale+widthimg, heightS3
 posimg4=[leftborderscale, heightS4-heightimg, leftborderscale+widthimg, heightS4+heightimg];
 
 % sound symbol img
-% path_symb = "C:\Users\pkovacs\Documents\GitHub\cherish\wp1-pps\StimulusPresentation\externalization_pilot\img\soundsymbol.png";
-path_symb = "C:\Users\experimentator.KFS\Documents\cherish\wp1-pps\StimulusPresentation\externalization_pilot\img\soundsymbol.png";
+path_symb = "C:\Users\pkovacs\Documents\GitHub\cherish\wp1-pps\StimulusPresentation\externalization_pilot\img\soundsymbol.png";
+% path_symb = "C:\Users\experimentator.KFS\Documents\cherish\wp1-pps\StimulusPresentation\externalization_pilot\img\soundsymbol.png";
 [imgSymb, ~, alphasymb] = imread(path_symb);
 imgSymb(:, :, 4) = alphasymb;
 textureS = Screen('MakeTexture', w, imgSymb);
+
+% fly img
+path_fly = "C:\Users\pkovacs\Documents\GitHub\cherish\wp1-pps\StimulusPresentation\externalization_pilot\img\fly.png";
+[imgFly, ~, alphaFly] = imread(path_fly);
+imgFly(:, :, 4) = alphaFly;
+textureF = Screen('MakeTexture', w, imgFly);
+% sizeFly = size(imgFly);
+heightFly = 40;
+widthFly = 30;
+gapFly = 5;
+
 
 %% experiment
 % wait for key after instructions
@@ -263,28 +270,28 @@ WaitSecs(0.6);
 %% Frequencies
 fmin = 310;
 fmax = 2*fmin; % 1 octave
-nF0 = 10; % unique f0 values
+nF0 = 8; % unique f0 values
 Freqs = round(linspace(fmin,fmax,nF0),-1);
 
-% Problematic F0s: 380 and 410 Hz
-goodIdxs = [1,2,5,6,7,8,9,10];
-stimStruct.stim = stimStruct.stim(goodIdxs,:,:);
-Freqs=Freqs(Freqs~=380); Freqs=Freqs(Freqs~=410);
-nF0 = 8;
-constantf0 = Freqs(round(nF0/2));
+% % Problematic F0s: 380 and 410 Hz
+% goodIdxs = [1,2,5,6,7,8,9,10];
+% stimStruct.stim = stimStruct.stim(goodIdxs,:,:);
+% Freqs=Freqs(Freqs~=380); Freqs=Freqs(Freqs~=410);
+% nF0 = 8;
+% constantf0 = Freqs(round(nF0/2));
 
 %% Azimuths
 Azimuths = [90,-90];
 
 %% Conditions: f0 and source intensity
-constf0 = zeros(1,nTrialsPerF0/nTrialsPerPage); varf0 = ones(1,nTrialsPerF0/nTrialsPerPage);
-f0conds = [constf0 varf0];
-if randi([0 1],1) == 0
-    f0conds = flip(f0conds); % randomize order
-end
+% constf0 = zeros(1,nTrialsPerF0/nTrialsPerPage); varf0 = ones(1,nTrialsPerF0/nTrialsPerPage);
+% f0conds = [constf0 varf0];
+% if randi([0 1],1) == 0
+%     f0conds = flip(f0conds); % randomize order
+% end
 
 lowInt = zeros(1,nTrialsPerSI/nTrialsPerPage); highInt = ones(1,nTrialsPerSI/nTrialsPerPage);
-sourceIntConds = repmat([lowInt highInt],1,length(unique(f0conds)));
+sourceIntConds = [lowInt highInt];
 if mod(subNum,2) == 0 
     sourceIntConds = flip(sourceIntConds); % randomize order
 end
@@ -296,24 +303,24 @@ uu=1; % trial counter
 for pp = 1:(nTrials/nTrialsPerPage) % Page
 
     % Handle f0 condition
-    if f0conds(pp) == 0 % constant f0 throughtout the experiment
-        f01=constantf0; f02=constantf0; f03=constantf0; f04=constantf0;
-        f1=find(Freqs==f01); f2=find(Freqs==f02); f3=find(Freqs==f03);
-        f4=find(Freqs==f04);
+    % if f0conds(pp) == 0 % constant f0 throughtout the experiment
+    %     f01=constantf0; f02=constantf0; f03=constantf0; f04=constantf0;
+    %     f1=find(Freqs==f01); f2=find(Freqs==f02); f3=find(Freqs==f03);
+    %     f4=find(Freqs==f04);
 
-    elseif f0conds(pp) == 1 % varying f0 (even within page)
+    % elseif f0conds(pp) == 1 % varying f0 (even within page)
         % f0 chosen randomly for each trial in a page
-        f1 = randi(nF0,1); f01 = Freqs(f1);
-        f2 = randi(nF0,1); f02 = Freqs(f2);
-        f3 = randi(nF0,1); f03 = Freqs(f3);
-        f4 = randi(nF0,1); f04 = Freqs(f4);
-    end
+        % f1 = randi(nF0,1); f01 = Freqs(f1);
+        % f2 = randi(nF0,1); f02 = Freqs(f2);
+        % f3 = randi(nF0,1); f03 = Freqs(f3);
+        % f4 = randi(nF0,1); f04 = Freqs(f4);
+    % end
 
     % Handle source intensity condition
     if sourceIntConds(pp) == 0
         SPL = db(0.2);
     else
-        SPL = db(1);
+        SPL = db(2);
     end
 
     % azi chosen randomly for each trial in a page
@@ -323,21 +330,27 @@ for pp = 1:(nTrials/nTrialsPerPage) % Page
     azi4 = randi(length(Azimuths),1);
 
     % distance counterbalanced within a page
-    distFix = randperm(numel(1:3)); % 0, 0.2 and 1 m all have to be presented, in random order.
+    distFix = 1:2; % 0.2 and 2 m all have to be presented
     % They are found in columns 1:3 of
     % the stim cell
-    distRand = randi([4,7],1); % One instance of the distances 0.3-0.9 m has to be present
+    distRand = randperm(4,2)+2; % One instance of the distances 0.3-1.9 m has to be present
+    distances = [distRand,distFix];
+    distances = distances(randperm(length(distances)));
 
     % Load sound
-    cellG = stimStruct.stim{f1,distFix(1),azi1};
-    cellB = stimStruct.stim{f2,distFix(2),azi2};
-    cellR = stimStruct.stim{f3,distFix(3),azi3};
-    cellY = stimStruct.stim{f4,distRand,azi4};
+    cellG = stimStruct2.stim(:,distances(1),azi1);
+    cellB = stimStruct2.stim(:,distances(2),azi2);
+    cellR = stimStruct2.stim(:,distances(3),azi3);
+    cellY = stimStruct2.stim(:,distances(4),azi4);
 
-    soundG = cellG{1}*10^(SPL/20); distG = cellG{2};
-    soundB = cellB{1}*10^(SPL/20); distB = cellB{2};
-    soundR = cellR{1}*10^(SPL/20); distR = cellR{2};
-    soundY = cellY{1}*10^(SPL/20); distY = cellY{2};
+    % soundG = cellG{1}*10^(SPL/20); 
+    distG = cellG{1,1}{1,2};
+    % soundB = cellB{1}*10^(SPL/20); 
+    distB = cellB{1,1}{1,2};
+    % soundR = cellR{1}*10^(SPL/20); 
+    distR = cellR{1,1}{1,2};
+    % soundY = cellY{1}*10^(SPL/20); 
+    distY = cellY{1,1}{1,2};
 
     % phase to listen to sounds and choose response
     respG=[];
@@ -352,28 +365,28 @@ for pp = 1:(nTrials/nTrialsPerPage) % Page
     % write source intensity information if it has changed
     if pp == 1 || sourceIntConds(pp) ~= sourceIntConds(pp-1)
         if sourceIntConds(pp) == 0
-            intensityInfo = 'Die nächsten Seiten haben LEISE Töne ';
+            intensityInfo = 'Die nächsten Seiten haben LEISE Töne...';
             disp('Low intensity pages.')
         else
-            intensityInfo = 'Die nächsten Seiten haben LAUTE Töne ';
+            intensityInfo = 'Die nächsten Seiten haben LAUTE Töne...';
             disp('High intensity pages.')
         end
 
-        if pp == 1 || f0conds(pp) ~= f0conds(pp-1)
-            if f0conds(pp) == 0
-                f0Info = 'und die Tonquelle bleibt immer gleich...';
-                disp('Constant F0 starting.')
-            else
-                f0Info = 'und verschiedene Tonquellen...';
-                disp('Variable F0 starting.')
-            end
-        end
+        % if pp == 1 || f0conds(pp) ~= f0conds(pp-1)
+        %     if f0conds(pp) == 0
+        %         f0Info = 'und die Tonquelle bleibt immer gleich...';
+        %         disp('Constant F0 starting.')
+        %     else
+        %         f0Info = 'und verschiedene Tonquellen...';
+        %         disp('Variable F0 starting.')
+        %     end
+        % end
 
     % display info
     Screen('TextSize',w,30);
-    DrawFormattedText(w,[intensityInfo,'\n',f0Info],'center','center',[0 0 0],120,0,0,1.5);
+    DrawFormattedText(w,intensityInfo,'center','center',[0 0 0],120,0,0,1.5);
     Screen('Flip', w, 0, 1);
-    WaitSecs(5);
+    WaitSecs(3);
     Screen('TextSize',w,defaultTxtSize);
     end  
 
@@ -416,6 +429,14 @@ for pp = 1:(nTrials/nTrialsPerPage) % Page
                 if y > heightB1 && y < heightB1+sizebutton
                     if isempty(respG)
                         Screen('FillRect', w ,colG,[x, heightS1-heightslider/2+heightscale/2, x+widthslider, heightS1+heightslider/2+heightscale/2]);
+                        sliderTopY = heightS1 - heightslider/2 + heightscale/2;
+                        flyLeft = x - widthFly/2;
+                        flyTop = sliderTopY - gapFly - heightFly;
+                        flyRight = x + widthFly/2;
+                        flyBottom = sliderTopY - gapFly;
+                        
+                        % Draw the fly texture
+                        Screen('DrawTexture', w, textureF, [], [flyLeft, flyTop, flyRight, flyBottom]);
                         Screen('Flip', w, 0, 1);
                         respG=x-leftborderscale;
                     else
@@ -423,12 +444,25 @@ for pp = 1:(nTrials/nTrialsPerPage) % Page
                         Screen('DrawTexture', w, texture, [], posimg1);
                         Screen('FillRect', w ,colscale,[leftborderscale, heightS1, leftborderscale+widthscale, heightS1+heightscale]);
                         Screen('FillRect', w ,colG,[x, heightS1-heightslider/2+heightscale/2, x+widthslider, heightS1+heightslider/2+heightscale/2]);
+                        sliderTopY = heightS1 - heightslider/2 + heightscale/2;
+                        flyLeft = x - widthFly/2;
+                        flyTop = sliderTopY - gapFly - heightFly;
+                        flyRight = x + widthFly/2;
+                        flyBottom = sliderTopY - gapFly;
+                        Screen('DrawTexture',w,textureF,[],[flyLeft, flyTop, flyRight, flyBottom]);
                         Screen('Flip', w, 0, 1);
                         respG=x-leftborderscale;
                     end
                 elseif y > heightB2 && y < heightB2+sizebutton
                     if isempty(respB)
                         Screen('FillRect', w ,colB,[x, heightS2-heightslider/2+heightscale/2, x+widthslider, heightS2+heightslider/2+heightscale/2]);
+                        sliderTopY = heightS2 - heightslider/2 + heightscale/2;
+                        flyLeft = x - widthFly/2;
+                        flyTop = sliderTopY - gapFly - heightFly;
+                        flyRight = x + widthFly/2;
+                        flyBottom = sliderTopY - gapFly;                        
+                        % Draw the fly texture
+                        Screen('DrawTexture', w, textureF, [], [flyLeft, flyTop, flyRight, flyBottom]);
                         Screen('Flip', w, 0, 1);
                         respB=x-leftborderscale;
                     else
@@ -436,12 +470,26 @@ for pp = 1:(nTrials/nTrialsPerPage) % Page
                         Screen('DrawTexture', w, texture, [], posimg2);
                         Screen('FillRect', w ,colscale,[leftborderscale, heightS2, leftborderscale+widthscale, heightS2+heightscale]);
                         Screen('FillRect', w ,colB,[x, heightS2-heightslider/2+heightscale/2, x+widthslider, heightS2+heightslider/2+heightscale/2]);
+                        sliderTopY = heightS2 - heightslider/2 + heightscale/2;
+                        flyLeft = x - widthFly/2;
+                        flyTop = sliderTopY - gapFly - heightFly;
+                        flyRight = x + widthFly/2;
+                        flyBottom = sliderTopY - gapFly;                        
+                        % Draw the fly texture
+                        Screen('DrawTexture', w, textureF, [], [flyLeft, flyTop, flyRight, flyBottom]);
                         Screen('Flip', w, 0, 1);
                         respB=x-leftborderscale;
                     end
                 elseif y > heightB3 && y < heightB3+sizebutton
                     if isempty(respR)
                         Screen('FillRect', w ,colR,[x, heightS3-heightslider/2+heightscale/2, x+widthslider, heightS3+heightslider/2+heightscale/2]);
+                        sliderTopY = heightS3 - heightslider/2 + heightscale/2;
+                        flyLeft = x - widthFly/2;
+                        flyTop = sliderTopY - gapFly - heightFly;
+                        flyRight = x + widthFly/2;
+                        flyBottom = sliderTopY - gapFly;                        
+                        % Draw the fly texture
+                        Screen('DrawTexture', w, textureF, [], [flyLeft, flyTop, flyRight, flyBottom]);
                         Screen('Flip', w, 0, 1);
                         respR=x-leftborderscale;
                     else
@@ -449,12 +497,26 @@ for pp = 1:(nTrials/nTrialsPerPage) % Page
                         Screen('DrawTexture', w, texture, [], posimg3);
                         Screen('FillRect', w ,colscale,[leftborderscale, heightS3, leftborderscale+widthscale, heightS3+heightscale]);
                         Screen('FillRect', w ,colR,[x, heightS3-heightslider/2+heightscale/2, x+widthslider, heightS3+heightslider/2+heightscale/2]);
+                        sliderTopY = heightS3 - heightslider/2 + heightscale/2;
+                        flyLeft = x - widthFly/2;
+                        flyTop = sliderTopY - gapFly - heightFly;
+                        flyRight = x + widthFly/2;
+                        flyBottom = sliderTopY - gapFly;                        
+                        % Draw the fly texture
+                        Screen('DrawTexture', w, textureF, [], [flyLeft, flyTop, flyRight, flyBottom]);
                         Screen('Flip', w, 0, 1);
                         respR=x-leftborderscale;
                     end
                 elseif y > heightB4 && y < heightB4+sizebutton
                     if isempty(respY)
                         Screen('FillRect', w ,colY,[x, heightS4-heightslider/2+heightscale/2, x+widthslider, heightS4+heightslider/2+heightscale/2]);
+                        sliderTopY = heightS4 - heightslider/2 + heightscale/2;
+                        flyLeft = x - widthFly/2;
+                        flyTop = sliderTopY - gapFly - heightFly;
+                        flyRight = x + widthFly/2;
+                        flyBottom = sliderTopY - gapFly;                        
+                        % Draw the fly texture
+                        Screen('DrawTexture', w, textureF, [], [flyLeft, flyTop, flyRight, flyBottom]);
                         Screen('Flip', w, 0, 1);
                         respY=x-leftborderscale;
                     else
@@ -462,24 +524,39 @@ for pp = 1:(nTrials/nTrialsPerPage) % Page
                         Screen('DrawTexture', w, texture, [], posimg4);
                         Screen('FillRect', w ,colscale,[leftborderscale, heightS4, leftborderscale+widthscale, heightS4+heightscale]);
                         Screen('FillRect', w ,colY,[x, heightS4-heightslider/2+heightscale/2, x+widthslider, heightS4+heightslider/2+heightscale/2]);
+                        sliderTopY = heightS4 - heightslider/2 + heightscale/2;
+                        flyLeft = x - widthFly/2;
+                        flyTop = sliderTopY - gapFly - heightFly;
+                        flyRight = x + widthFly/2;
+                        flyBottom = sliderTopY - gapFly;                        
+                        % Draw the fly texture
+                        Screen('DrawTexture', w, textureF, [], [flyLeft, flyTop, flyRight, flyBottom]);
                         Screen('Flip', w, 0, 1);
                         respY=x-leftborderscale;
                     end
                 end
             elseif x > leftbordersound && x < leftbordersound+sizebutton
                 if y > heightB1 && y < heightB1+sizebutton
+                    soundG = cellG{randi([1,length(cellG)],1),1};
+                    soundG = soundG{1,1}*10^(SPL/20);
                     PsychPortAudio('FillBuffer', pahandle, soundG');
                     PsychPortAudio('Start', pahandle, 1, 0, 1);
                     WaitSecs(0.5);
                 elseif y > heightB2 && y < heightB2+sizebutton
+                    soundB = cellB{randi([1,length(cellB)],1),1};
+                    soundB = soundB{1,1}*10^(SPL/20);
                     PsychPortAudio('FillBuffer', pahandle, soundB');
                     PsychPortAudio('Start', pahandle, 1, 0, 1);
                     WaitSecs(0.5);
                 elseif y > heightB3 && y < heightB3+sizebutton
+                    soundR = cellR{randi([1,length(cellR)],1),1};
+                    soundR = soundR{1,1}*10^(SPL/20);
                     PsychPortAudio('FillBuffer', pahandle, soundR');
                     PsychPortAudio('Start', pahandle, 1, 0, 1);
                     WaitSecs(0.5);
                 elseif y > heightB4 && y < heightB4+sizebutton
+                    soundY = cellY{randi([1,length(cellY)],1),1};
+                    soundY = soundY{1,1}*10^(SPL/20);
                     PsychPortAudio('FillBuffer', pahandle, soundY');
                     PsychPortAudio('Start', pahandle, 1, 0, 1);
                     WaitSecs(0.5);
@@ -488,10 +565,10 @@ for pp = 1:(nTrials/nTrialsPerPage) % Page
         end
     end
 
-    resp(uu,1:6) = [sourceIntConds(pp) f0conds(pp) f01 Azimuths(azi1) distG respG];
-    resp(uu+1,1:6)=[sourceIntConds(pp) f0conds(pp) f02 Azimuths(azi2) distB respB];
-    resp(uu+2,1:6)=[sourceIntConds(pp) f0conds(pp) f03 Azimuths(azi3) distR respR];
-    resp(uu+3,1:6)=[sourceIntConds(pp) f0conds(pp) f04 Azimuths(azi4) distY respY];
+    resp(uu,1:4) = [sourceIntConds(pp) Azimuths(azi1) distG respG];
+    resp(uu+1,1:4)=[sourceIntConds(pp) Azimuths(azi2) distB respB];
+    resp(uu+2,1:4)=[sourceIntConds(pp) Azimuths(azi3) distR respR];
+    resp(uu+3,1:4)=[sourceIntConds(pp) Azimuths(azi4) distY respY];
 
     save(['ext_resp_' num2str(subNum)],'resp');
     uu=uu+4; % trial counter
@@ -499,7 +576,7 @@ for pp = 1:(nTrials/nTrialsPerPage) % Page
 end % page
 
 results.participant=subNum;
-results.cols={'sourceIntensity','f0condition','f0','azi','distance','externalization'};
+results.cols={'sourceIntensity','azi','distance','externalization'};
 results.res=resp;
 save(['ext_resp_' num2str(subNum)],'results');
 
