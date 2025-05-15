@@ -9,7 +9,7 @@ function extPilot(subNum)
 % - Distance judgement task with a GUI
 % - Stimuli are presented on pages, every page contains 4 sounds that can be
 % played by the listener. Each sound on a page has a different distance
-% (options: in the head, 20 cm, 40/90/130/180 cm, 2 m)
+% (options: 20 cm, 40/90/130/180 cm, 2 m)
 % - Source intensity changes at halftime and the listener is informed about
 % this.
 % - Stimuli have to be arranged in an f0s X distances X azimuths cell
@@ -19,7 +19,7 @@ function extPilot(subNum)
 % Author: Petra Kovacs, 2025
 
 %% Set trial number info
-nTrials = 112; % how many trials in total
+nTrials = 96; % how many trials in total
 % nTrialsPerF0 = nTrials/2; % how many trials in an f0 condition
 nTrialsPerSI = nTrials/2; % how many trials per source intensity condition
 nTrialsPerPage = 4; % how many trials on a page
@@ -160,10 +160,10 @@ PsychPortAudio('Start', pahandle, 1);  % start immediately
 PsychPortAudio('Stop', pahandle, 1);  % stop when playback is over
 
 %% Open the stimuli structure
-stimArrayName = 'stimStruct2.mat';
+stimArrayName = 'stimStruct.mat';
 stimArrayFileStruct = dir(stimArrayName);
 stimArrayFile = [stimArrayFileStruct.folder, '/', stimArrayFileStruct.name];
-load(stimArrayFile, 'stimStruct2');
+load(stimArrayFile, 'stimStruct');
 
 %% Initialize the graphical interface for Psychtoolbox
 colBG=[200 200 200];
@@ -182,13 +182,15 @@ Screen('BlendFunction', w, 'GL_SRC_ALPHA', 'GL_ONE_MINUS_SRC_ALPHA');
 
 %% Listener instruction
 instruction = [...
-    'Abstände von Tönen einschätzen: \n\n\n',...
+    'Wie weit ist die Fliege? \n\n\n',...
     'Pro Seite gibt es vier Töne, die Sie durch Mausklick auf die Lautsprechersymbole links im Bild so oft Sie wollen anhören können. \n',...
-    'Rechts neben den Lautsprechersymbolen gibt es pro Ton eine Leiste, auf der Sie den Abstand des Tons per Mausklick stufenlos angeben können. \n',...
-    'Die Töne können links oder rechts sein, oder sogar innerhalb Ihrem Kopf. \n\n',...
-    'Wenn Sie die vier Töne ausreichend verglichen haben und mit Ihrer Einschätzung zufrieden sind, drücken Sie die Leertaste, um fortzufahren. \n',...
-    'Manche Seiten habe leisere, manche lautere Töne. Außerdem gibt es entweder verschiedene Tonquellen pro Seite oder die gleiche. \n', ...
-    'Diese Informationen werden Sie bekommen, bitte beachten Sie darauf. \n',...
+    'Nehmen wir an, dass diese Töne verschiedene Fliegen sind. \n',...
+    'Rechts neben den Lautsprechersymbolen gibt es pro Ton eine Leiste, auf der Sie den Abstand der Fliege per Mausklick stufenlos angeben können. \n',...
+    'Die Fliegen können in oder außer Reichweite sein, links oder rechts. Ihre Stimme (die Tonhöhe) kann sich an jedem Mausklick ändern. \n\n',...
+    'Die Leisten enden ungefähr 2 Meter von Sie entfernt, wo Sie die Fliegen nicht mehr hören könnten. \n',...
+    'Wenn Sie den Abstand der vier Fliegen ausreichend verglichen haben und mit Ihrer Einschätzung zufrieden sind, drücken Sie die Leertaste, um fortzufahren. \n',...
+    'Die Hälfte der Seiten haben laute Fliegen, die andere Hälfte leise Fliegen. \n', ...
+    'Diese Information werden Sie bekommen. Die relative Lautstärke der Fliegen auf derselben Seite ist informativ. \n',...
     'Das Experiment besteht insgesamt aus ' num2str(nTrials/nTrialsPerPage) ' Seiten. \n\n\n',...
     'Haben Sie noch Fragen? \n\n',...
     'Zum Starten die Leertaste drücken.'];
@@ -267,29 +269,10 @@ gapFly = 5;
 while ~KbCheck; end
 WaitSecs(0.6);
 
-%% Frequencies
-fmin = 310;
-fmax = 2*fmin; % 1 octave
-nF0 = 8; % unique f0 values
-Freqs = round(linspace(fmin,fmax,nF0),-1);
-
-% % Problematic F0s: 380 and 410 Hz
-% goodIdxs = [1,2,5,6,7,8,9,10];
-% stimStruct.stim = stimStruct.stim(goodIdxs,:,:);
-% Freqs=Freqs(Freqs~=380); Freqs=Freqs(Freqs~=410);
-% nF0 = 8;
-% constantf0 = Freqs(round(nF0/2));
-
 %% Azimuths
 Azimuths = [90,-90];
 
-%% Conditions: f0 and source intensity
-% constf0 = zeros(1,nTrialsPerF0/nTrialsPerPage); varf0 = ones(1,nTrialsPerF0/nTrialsPerPage);
-% f0conds = [constf0 varf0];
-% if randi([0 1],1) == 0
-%     f0conds = flip(f0conds); % randomize order
-% end
-
+%% Source intensity conditions
 lowInt = zeros(1,nTrialsPerSI/nTrialsPerPage); highInt = ones(1,nTrialsPerSI/nTrialsPerPage);
 sourceIntConds = [lowInt highInt];
 if mod(subNum,2) == 0 
@@ -301,20 +284,6 @@ resp=[];
 uu=1; % trial counter
 
 for pp = 1:(nTrials/nTrialsPerPage) % Page
-
-    % Handle f0 condition
-    % if f0conds(pp) == 0 % constant f0 throughtout the experiment
-    %     f01=constantf0; f02=constantf0; f03=constantf0; f04=constantf0;
-    %     f1=find(Freqs==f01); f2=find(Freqs==f02); f3=find(Freqs==f03);
-    %     f4=find(Freqs==f04);
-
-    % elseif f0conds(pp) == 1 % varying f0 (even within page)
-        % f0 chosen randomly for each trial in a page
-        % f1 = randi(nF0,1); f01 = Freqs(f1);
-        % f2 = randi(nF0,1); f02 = Freqs(f2);
-        % f3 = randi(nF0,1); f03 = Freqs(f3);
-        % f4 = randi(nF0,1); f04 = Freqs(f4);
-    % end
 
     % Handle source intensity condition
     if sourceIntConds(pp) == 0
@@ -330,26 +299,22 @@ for pp = 1:(nTrials/nTrialsPerPage) % Page
     azi4 = randi(length(Azimuths),1);
 
     % distance counterbalanced within a page
-    distFix = 1:2; % 0.2 and 2 m all have to be presented
-    % They are found in columns 1:3 of
+    distFix = 1:2; % 0.2 and 2 m all have to be presented;
+    % they are found in columns 1:2 of
     % the stim cell
     distRand = randperm(4,2)+2; % One instance of the distances 0.3-1.9 m has to be present
     distances = [distRand,distFix];
     distances = distances(randperm(length(distances)));
 
     % Load sound
-    cellG = stimStruct2.stim(:,distances(1),azi1);
-    cellB = stimStruct2.stim(:,distances(2),azi2);
-    cellR = stimStruct2.stim(:,distances(3),azi3);
-    cellY = stimStruct2.stim(:,distances(4),azi4);
+    cellG = stimStruct.stim(:,distances(1),azi1);
+    cellB = stimStruct.stim(:,distances(2),azi2);
+    cellR = stimStruct.stim(:,distances(3),azi3);
+    cellY = stimStruct.stim(:,distances(4),azi4);
 
-    % soundG = cellG{1}*10^(SPL/20); 
     distG = cellG{1,1}{1,2};
-    % soundB = cellB{1}*10^(SPL/20); 
     distB = cellB{1,1}{1,2};
-    % soundR = cellR{1}*10^(SPL/20); 
     distR = cellR{1,1}{1,2};
-    % soundY = cellY{1}*10^(SPL/20); 
     distY = cellY{1,1}{1,2};
 
     % phase to listen to sounds and choose response
@@ -371,16 +336,6 @@ for pp = 1:(nTrials/nTrialsPerPage) % Page
             intensityInfo = 'Die nächsten Seiten haben LAUTE Töne...';
             disp('High intensity pages.')
         end
-
-        % if pp == 1 || f0conds(pp) ~= f0conds(pp-1)
-        %     if f0conds(pp) == 0
-        %         f0Info = 'und die Tonquelle bleibt immer gleich...';
-        %         disp('Constant F0 starting.')
-        %     else
-        %         f0Info = 'und verschiedene Tonquellen...';
-        %         disp('Variable F0 starting.')
-        %     end
-        % end
 
     % display info
     Screen('TextSize',w,30);

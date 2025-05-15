@@ -1,32 +1,35 @@
 function stimStruct = genStimExt(dur,f0)
 % Usage: genStimExt(dur)
 %
-% Generates 10x3x2 sounds of dur s duration, at 10 different f0s (in one
-% octave range), 3 different distances (in head, 20 cm, 100 cm) and 2 sides
-% (left, right). The binaural stimuli are generated with the Binaural
-% Rendering Toolbox (BRT) in a separate loop than the diotic stimuli.
+% Generates sounds of dur s duration, at different f0s (in one
+% octave range), distances, and azimuths. The stimuli are generated 
+% with the Binaural Rendering Toolbox (BRT). 
 %
 % Inputs:
 % - dur:   duration of each sound in s (default: 2 s)
 % - f0:    set constant f0 for all stimuli (default: varies in one octave range)
 %
+% Requirements:
+% - The BRT Renderer App needs to be open
+% - oscsend.m needs to be on the path
+%
 % #Author: Petra Kovacs, 2025, Acoustics Research Institute, Vienna,
 % Austria
 %
-%% Preset values for binaural stimuli
+%% Preset values 
 % No. of stimuli and conditons
 nF0 = 8; % unique f0 values
-nD = 7; % unique distance values
+nD = 6; % unique distance values
 nSide = 2; % unique azimuth values
 nStimuli = nF0*nD*nSide;
 stimStruct.stim = cell(nF0,nD,nSide);
 
 % Distances (m)
-in = 0;
+% in = 0;
 PPS = 0.2;
 EPS = 2;
-dOptions = [in,PPS,EPS,round(linspace(PPS+0.2,EPS-0.2,nD-3),1)];  
-                                              % 1st three columns: the fixed
+dOptions = [PPS,EPS,round(linspace(PPS+0.2,EPS-0.2,nD-2),1)];  
+                                              % 1st two columns: the fixed
                                               % distances we want to use in the
                                               % experiment.
                                               % Then, the distances inbetween.
@@ -34,11 +37,6 @@ dOptions = [in,PPS,EPS,round(linspace(PPS+0.2,EPS-0.2,nD-3),1)];
 % Azimuths (deg)
 % aziOptions = repmat([90,-90],1,nBinauralStimuli/nSide);
 aziOptions = [90,-90];
-
-%% Preset values for diotic stimuli
-% No. of stimuli and conditons
-nDdi = 1; % unique distance values for diotic stimuli
-nDioticStimuli = nF0*nDdi*nSide;
 
 %% Input check and defaults
 % Duration
@@ -61,16 +59,17 @@ if ~exist("amt_start.m","file")
 end
 
 %% Load an HRTF dataset to determine the right sampling rate
-if ~exist("SOFAdbPath.m","file")
-    sofaPath = '\\kfs\fileserver\ProjektDaten\CherISH\code\SOFAtoolbox\SOFAtoolbox';
-    addpath(sofaPath);
-    SOFAstart;
-end
-database = 'sadie';
-HRTFfilename = '3DTI_HRTF_SADIE_II_D2_256s_48000Hz_resampled5.sofa';
-fullfn = fullfile(SOFAdbPath, 'database', database, HRTFfilename);
-Obj = SOFAload(fullfn);
-fs = Obj.Data.SamplingRate;
+% if ~exist("SOFAdbPath.m","file")
+%     sofaPath = '\\kfs\fileserver\ProjektDaten\CherISH\code\SOFAtoolbox\SOFAtoolbox';
+%     addpath(sofaPath);
+%     SOFAstart;
+% end
+% database = 'sadie';
+% HRTFfilename = '3DTI_HRTF_SADIE_II_D2_256s_48000Hz_resampled5.sofa';
+% fullfn = fullfile(SOFAdbPath, 'database', database, HRTFfilename);
+% Obj = SOFAload(fullfn);
+% fs = Obj.Data.SamplingRate;
+fs = 48e3;
 
 %% Create directory for saving audio data + parameters files
 c = clock;  %#ok<CLOCK> % dir name based on current time
@@ -90,7 +89,6 @@ if exist('f0','var') % if constant f0 is requested
 end
 mkdir(wavDir);
 
-
 %% Create a home for saved parameters
 outFields = {
     'filename', ...
@@ -101,7 +99,7 @@ outFields = {
     'fs', ...                % sampling rate
     };
 
-outCsv = cell(nStimuli+nDioticStimuli+1,length(outFields));
+outCsv = cell(nStimuli+1,length(outFields));
 outCsv(1,:) = outFields;
 
 %% Set connection between Matlab and BRT through OSC; set some settings
@@ -130,19 +128,18 @@ for ff = 1:length(fOptions)
     for dd = 1:length(dOptions)
         for aa = 1:length(aziOptions)
 
-            % Progress update
-            clc;
-            disp(['Processing stimulus ',num2str(stimNo),'/',num2str(nStimuli),'...']);
-
             azi = aziOptions(aa);
             ele = 0; % Elevation always 0
             r = dOptions(dd);
 
+            % Progress update
+            clc;
+            disp(['Processing stimulus ',num2str(stimNo),'/',num2str(nStimuli),'...',...
+                newline, 'f0 = ', num2str(f0), '; r = ', num2str(r)]);
             %% Generate triangle wave
             t = linspace(0,dur,dur*fs); % Time vector from 0 to dur with sampling interval 1/fs
             triwave = sawtooth(2 * pi * f0 * t, 0.5); % 0.5 for a symmetric triangular wave
 
-            if r > in % if spatialized stimuli
                     %% Prepare for spatialization
                     win = tukeywin(size(triwave,2),(0.1*fs)/size(triwave,2)); % 0.1 s on-offset ramp
                     triwave = triwave.*win';
@@ -160,8 +157,8 @@ for ff = 1:length(fOptions)
                     savename = strcat(filename,'.mat');
 
                     %% Spatialize with BRT
-                    oscsend(u,'/removeAllSources', 's', '');
-                    oscsend(u, '/source/loadSource', 'sss', 'source', wavname, 'DirectivityModel'); WaitSecs(1);
+                    oscsend(u,'/removeAllSources', 's', ''); WaitSecs(2);
+                    oscsend(u, '/source/loadSource', 'sss', 'source', wavname, 'DirectivityModel'); WaitSecs(2);
                     [x,y,z] = sph2cart(deg2rad(azi),deg2rad(ele),r);
                     oscsend(u, '/source/location', 'sfff', 'source', x, y, z); WaitSecs(5);
                     oscsend(u, '/source/playAndRecord', 'sssf', 'source', savename, 'mat', dur+buffer); WaitSecs(3);
@@ -180,7 +177,7 @@ for ff = 1:length(fOptions)
                     % Update duration data to exclude buffer
                     totalDur = length(spatWin)/fs;
 
-                    % Scale sound to insure intensity differences
+                    % Scale sound to ensure intensity differences
                     scaleto = PPS/r;
                     scaledb = 20 * log10(scaleto / max(spatWin,[],"all"));
 
@@ -199,40 +196,17 @@ for ff = 1:length(fOptions)
                     save(strcat(filename,'.mat'), "out", "fs");
                     WaitSecs(4); % avoid BRT crashing
 
-            elseif r == in
-                    %% Window and stereo
-                    win = tukeywin(size(triwave,2),(0.1*fs)/size(triwave,2)); % 0.1 s on-offset ramp
-                    triwave = repmat(triwave.*win',2,1);
-
-                    % Scale sound 
-                    scaleto = 1;
-                    scaledb = 20 * log10(scaleto / max(triwave,[],"all"));
-
-                    scaled1 = scaletodbspl(triwave(1,:)',dbspl(triwave(1,:)')+scaledb);
-                    scaled2 = scaletodbspl(triwave(2,:)',dbspl(triwave(2,:)')+scaledb);
-                    out = [scaled1 scaled2];
-
-                    % Save stimulus in .mat file
-                    digits = ceil(log10(nDioticStimuli + 1));
-                    stimulusdigits = ceil(log10(stimNo + 1));
-                    temp = char('');
-                    for digind = 1:(digits-stimulusdigits)
-                        temp = strcat(temp, '0');
-                    end
-                    filename = strcat(wavDir, '/', wavDir, '-', temp, num2str(stimNo));
-                    save(strcat(filename,'.mat'), "out", "fs");
-                    totalDur = length(out)/fs;
-            end
-
             % Add parameters to cell array for later saving
             outCsv(stimNo+1, :) = {filename, f0, totalDur, r, azi, fs};
             stimStruct.fs = fs;
             stimStruct.stim{ff,dd,aa} = {out, r};
 
             stimNo = stimNo+1;
+
+            figure; plot(out); drawnow; WaitSecs(2); % Plot figure for checking
         end % azi options
     end % distance options
-end % f0 options // stimulus generation loop for BRT
+end % f0 options // stimulus generation loop 
 
 %% Save output
 % Convert cell to a table and use first row as variable names
