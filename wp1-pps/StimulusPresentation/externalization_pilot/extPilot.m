@@ -188,21 +188,23 @@ instruction = [...
     'Rechts neben den Lautsprechersymbolen gibt es pro Ton eine Leiste, auf der Sie den Abstand der Fliege per Mausklick stufenlos angeben können. \n',...
     'Die Fliegen können in oder außer Reichweite sein, links oder rechts. Ihre Stimme (die Tonhöhe) kann sich an jedem Mausklick ändern. \n\n',...
     'Die Leisten enden ungefähr 2 Meter von Sie entfernt. \n',...
-    'Wenn Sie den Abstand der vier Fliegen ausreichend verglichen haben und mit Ihrer Einschätzung zufrieden sind, drücken Sie die Leertaste, um fortzufahren. \n',...
+    'Wenn Sie den Abstand der vier Fliegen ausreichend verglichen haben und mit Ihrer Einschätzung zufrieden sind, \n',...
+    'drücken Sie die Leertaste, um fortzufahren. \n',...
     'Die Hälfte der Seiten haben laute Fliegen, die andere Hälfte leise Fliegen. Eine leise Fliege kann genauso nah oder weit sein, \n', ...
-    'als eine laute, also die relative Lautstärke der Fliegen auf derselben Seite ist informativer als die absolute Lautstärke.'
+    'als eine laute, also die relative Lautstärke der Fliegen auf derselben Seite ist informativer als die absolute Lautstärke.\n',...
     'Die Lautstärke-Information werden Sie bekommen. \n',...
     'Das Experiment besteht insgesamt aus ' num2str(nTrials/nTrialsPerPage) ' Seiten. \n\n\n',...
     'Haben Sie noch Fragen? \n\n',...
-    'Zum Starten die Leertaste drücken.'];
+    'Zum Starten die Leertaste drücken.'...
+    ];
 
 DrawFormattedText(w,instruction,.2*x_center,'center',[0 0 0],120,0,0,1.5);
 Screen('Flip',w);
 
 %% define colors, sizes and positions
 % img of head
-path_head = "C:\Users\pkovacs\Documents\GitHub\cherish\wp1-pps\StimulusPresentation\externalization_pilot\img\head.png";
-% path_head = "C:\Users\experimentator.KFS\Documents\cherish\wp1-pps\StimulusPresentation\externalization_pilot\img\head_trialversion.png";
+% path_head = "C:\Users\pkovacs\Documents\GitHub\cherish\wp1-pps\StimulusPresentation\externalization_pilot\img\head.png";
+path_head = "C:\Users\experimentator.KFS\Documents\cherish\wp1-pps\StimulusPresentation\externalization_pilot\img\head.png";
 [img, ~, alpha] = imread(path_head);
 texture = Screen('MakeTexture', w, img);
 widthimg=1500;
@@ -248,14 +250,14 @@ posimg3=[leftborderscale, heightS3-heightimg, leftborderscale+widthimg, heightS3
 posimg4=[leftborderscale, heightS4-heightimg, leftborderscale+widthimg, heightS4+heightimg];
 
 % sound symbol img
-path_symb = "C:\Users\pkovacs\Documents\GitHub\cherish\wp1-pps\StimulusPresentation\externalization_pilot\img\soundsymbol.png";
-% path_symb = "C:\Users\experimentator.KFS\Documents\cherish\wp1-pps\StimulusPresentation\externalization_pilot\img\soundsymbol.png";
+% path_symb = "C:\Users\pkovacs\Documents\GitHub\cherish\wp1-pps\StimulusPresentation\externalization_pilot\img\soundsymbol.png";
+path_symb = "C:\Users\experimentator.KFS\Documents\cherish\wp1-pps\StimulusPresentation\externalization_pilot\img\soundsymbol.png";
 [imgSymb, ~, alphasymb] = imread(path_symb);
 imgSymb(:, :, 4) = alphasymb;
 textureS = Screen('MakeTexture', w, imgSymb);
 
 % fly img
-path_fly = "C:\Users\pkovacs\Documents\GitHub\cherish\wp1-pps\StimulusPresentation\externalization_pilot\img\fly.png";
+path_fly = "C:\Users\experimentator.KFS\Documents\cherish\wp1-pps\StimulusPresentation\externalization_pilot\img\fly.png";
 [imgFly, ~, alphaFly] = imread(path_fly);
 imgFly(:, :, 4) = alphaFly;
 textureF = Screen('MakeTexture', w, imgFly);
