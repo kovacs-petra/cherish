@@ -18,9 +18,12 @@ function stimStruct = genStimExt(dur,f0)
 %
 %% Preset values 
 % No. of stimuli and conditons
-nF0 = 8; % unique f0 values
-nD = 6; % unique distance values
-nSide = 2; % unique azimuth values
+% nF0 = 8; % unique f0 values
+nF0 = 1;
+% nD = 6; % unique distance values
+nD = 4;
+% nSide = 2; % unique azimuth values
+nSide = 2;
 nStimuli = nF0*nD*nSide;
 stimStruct.stim = cell(nF0,nD,nSide);
 
@@ -49,6 +52,8 @@ if ~exist('f0', 'var')
     fmin = 310;
     fmax = 2*fmin; % 1 octave
     fOptions = round(linspace(fmin,fmax,nF0),-1);
+else
+    fOptions = f0;
 end
 
 %% Initialize AMT
@@ -109,11 +114,14 @@ oscsend(u, '/listener/enableSpatialization', 'sB', 'DefaultListener',1);
 oscsend(u, '/listener/enableInterpolation', 'sB', 'DefaultListener',1);
 oscsend(u, '/listener/enableNearFieldEffect', 'sB', 'DefaultListener',1);
 oscsend(u, '/listener/enableITD', 'sB', 'DefaultListener',1);
-oscsend(u, '/enableModel', 'sB', 'FreeField',1);
-oscsend(u, '/environment/enableDirectPath', 'sB', 'FreeField',1);
+oscsend(u, '/enableModel', 'sB', 'FreeField',0);
+oscsend(u, '/enableModel', 'sB', 'ReverbPath',1);
+oscsend(u, '/environment/enableDirectPath', 'sB', 'SDN',1);
+oscsend(u, '/environment/enableReverbPath', 'sB', 'SDN',1);
 oscsend(u, '/listener/enableParallaxCorrection', 'sB', 'DefaultListener',1);
 oscsend(u, '/enableModel', 'sB', 'DirectPath', 1);
-oscsend(u, '/environment/enableDistanceAttenuation', 'sB', 'FreeField', 1);
+% oscsend(u, '/environment/enableDistanceAttenuation', 'sB', 'FreeField', 1);
+oscsend(u, '/environment/enableDistanceAttenuation', 'sB', 'SDN', 1);
 
 stimNo = 1;
 %% Stimulus generation loop for dichotic sounds (BRT)
@@ -136,9 +144,11 @@ for ff = 1:length(fOptions)
             clc;
             disp(['Processing stimulus ',num2str(stimNo),'/',num2str(nStimuli),'...',...
                 newline, 'f0 = ', num2str(f0), '; r = ', num2str(r)]);
-            %% Generate triangle wave
+            %% Generate triangle wave with AM
             t = linspace(0,dur,dur*fs); % Time vector from 0 to dur with sampling interval 1/fs
             triwave = sawtooth(2 * pi * f0 * t, 0.5); % 0.5 for a symmetric triangular wave
+            % AM = sin(2*pi*2*t); % 40 Hz sine wave
+            % triwaveAM = triwave.*AM; 
 
                     %% Prepare for spatialization
                     win = tukeywin(size(triwave,2),(0.1*fs)/size(triwave,2)); % 0.1 s on-offset ramp
@@ -214,7 +224,7 @@ T = cell2table(outCsv(2:end, :), 'VariableNames', outCsv(1, :));
 
 % Write the table to a CSV file, final user message
 writetable(T,strcat('./', wavDir, '/', strcat(wavDir, '-', 'StimuliData.csv')));
-save("stimStruct.mat","stimStruct");
+save("stimStruct2HzAM.mat","stimStruct");
 
 disp([newline, 'Task done, files and parameters are saved to directory ', wavDir, newline]);
 end
