@@ -10,18 +10,19 @@ function extPilot(subNum)
 % - Stimuli are presented on pages, every page contains 4 sounds that can be
 % played by the listener. Each sound on a page has a different distance
 % (options: 20 cm, 40/90/130/180 cm, 2 m)
-% - Source intensity changes at halftime and the listener is informed about
-% this.
-% - Stimuli have to be arranged in an f0s X distances X azimuths cell
+% - Source intensity changes at halftime from low to high, with a break
+% inbetween
+% - Two stimulus types are tested separately: triangle wave, white noise
+% - Stimuli have to be arranged in an f0s X distances X azimuths X stimulus types cell
 % array, with each cell containing the audio (2 channels) in position 1 and
 % the specific distance in position 2
 %                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       
 % Author: Petra Kovacs, 2025
 
 %% Set trial number info
-nTrials = 96; % how many trials in total
-% nTrialsPerF0 = nTrials/2; % how many trials in an f0 condition
+nTrials = 192; % how many trials in total
 nTrialsPerSI = nTrials/2; % how many trials per source intensity condition
+nTrialsPerType = nTrialsPerSI/2; % how many trials per stimulus type
 nTrialsPerPage = 4; % how many trials on a page
 
 %% Initialize PsychPortAudio and Screen Number
@@ -160,16 +161,15 @@ PsychPortAudio('Start', pahandle, 1);  % start immediately
 PsychPortAudio('Stop', pahandle, 1);  % stop when playback is over
 
 %% Open the stimuli structure
-stimArrayName = 'stimStruct.mat';
+stimArrayName = 'stimStructEq.mat';
 stimArrayFileStruct = dir(stimArrayName);
 stimArrayFile = [stimArrayFileStruct.folder, '/', stimArrayFileStruct.name];
-load(stimArrayFile, 'stimStruct');
+load(stimArrayFile, 'stimStructEq');
 
 %% Initialize the graphical interface for Psychtoolbox
 colBG=[200 200 200];
 
 % ignore screen warning
-% PsychDefaultSetup(2); % makes sure Screen is functional and unifies keyCodes across OS
 [w,rect] = Screen('OpenWindow',S.screen_number, colBG);
 % debugRect = [10 10 400 1200];
 %     [w,rect] = Screen('OpenWindow',S.screen_number,colBG,debugRect);
@@ -184,7 +184,7 @@ Screen('BlendFunction', w, 'GL_SRC_ALPHA', 'GL_ONE_MINUS_SRC_ALPHA');
 instruction = [...
     'Wie weit ist die Fliege? \n\n\n',...
     'Pro Seite gibt es vier Töne, die Sie durch Mausklick auf die Lautsprechersymbole links im Bild so oft Sie wollen anhören können. \n',...
-    'Nehmen wir an, dass diese Töne verschiedene Fliegen sind. \n',...
+    'Nehmen wir an, dass diese Töne verschiedene Fliegen sind. Sie sind aber außerirdisch und haben eine komische Stimme. \n',...
     'Rechts neben den Lautsprechersymbolen gibt es pro Ton eine Leiste, auf der Sie den Abstand der Fliege per Mausklick stufenlos angeben können. \n',...
     'Die Fliegen können in oder außer Reichweite sein, links oder rechts. Ihre Stimme (die Tonhöhe) kann sich an jedem Mausklick ändern. \n\n',...
     'Die Leisten enden ungefähr 2 Meter von Sie entfernt, wo Sie die Fliegen nicht mehr hören könnten. \n',...
@@ -258,7 +258,6 @@ path_fly = "C:\Users\pkovacs\Documents\GitHub\cherish\wp1-pps\StimulusPresentati
 [imgFly, ~, alphaFly] = imread(path_fly);
 imgFly(:, :, 4) = alphaFly;
 textureF = Screen('MakeTexture', w, imgFly);
-% sizeFly = size(imgFly);
 heightFly = 40;
 widthFly = 30;
 gapFly = 5;
@@ -272,11 +271,20 @@ WaitSecs(0.6);
 %% Azimuths
 Azimuths = [90,-90];
 
-%% Source intensity conditions
+%% Set order of conditions
+% Source intensity conditions
 lowInt = zeros(1,nTrialsPerSI/nTrialsPerPage); highInt = ones(1,nTrialsPerSI/nTrialsPerPage);
 sourceIntConds = [lowInt highInt];
+% if mod(subNum,2) == 0 
+%     sourceIntConds = flip(sourceIntConds); % counterbalance the order
+% end
+
+% Stimulus type conditions
+TW = zeros(1,nTrialsPerType/nTrialsPerPage);
+WN = ones(1,nTrialsPerType/nTrialsPerPage);
+typeConds = [TW,WN,TW,WN];
 if mod(subNum,2) == 0 
-    sourceIntConds = flip(sourceIntConds); % randomize order
+    typeConds = flip(typeConds); % counterbalance the order
 end
 
 %% Counters
@@ -286,10 +294,17 @@ uu=1; % trial counter
 for pp = 1:(nTrials/nTrialsPerPage) % Page
 
     % Handle source intensity condition
-    if sourceIntConds(pp) == 0
+    if sourceIntConds(pp) == 0 % low intensity condition
         SPL = db(0.2);
-    else
+    else % high intensity condition
         SPL = db(2);
+    end
+
+    % Handle stimulus type condition
+    if typeConds(pp) == 0 % triangle wave condition
+        tt = 1; % stim type index in the stimStruct
+    else % white noise condition
+        tt = 2;
     end
 
     % azi chosen randomly for each trial in a page
@@ -307,10 +322,10 @@ for pp = 1:(nTrials/nTrialsPerPage) % Page
     distances = distances(randperm(length(distances)));
 
     % Load sound
-    cellG = stimStruct.stim(:,distances(1),azi1);
-    cellB = stimStruct.stim(:,distances(2),azi2);
-    cellR = stimStruct.stim(:,distances(3),azi3);
-    cellY = stimStruct.stim(:,distances(4),azi4);
+    cellG = stimStructEq.stim(:,distances(1),azi1,tt);
+    cellB = stimStructEq.stim(:,distances(2),azi2,tt);
+    cellR = stimStructEq.stim(:,distances(3),azi3,tt);
+    cellY = stimStructEq.stim(:,distances(4),azi4,tt);
 
     distG = cellG{1,1}{1,2};
     distB = cellB{1,1}{1,2};
@@ -520,18 +535,32 @@ for pp = 1:(nTrials/nTrialsPerPage) % Page
         end
     end
 
-    resp(uu,1:4) = [sourceIntConds(pp) Azimuths(azi1) distG respG];
-    resp(uu+1,1:4)=[sourceIntConds(pp) Azimuths(azi2) distB respB];
-    resp(uu+2,1:4)=[sourceIntConds(pp) Azimuths(azi3) distR respR];
-    resp(uu+3,1:4)=[sourceIntConds(pp) Azimuths(azi4) distY respY];
+    resp(uu,1:5) = [sourceIntConds(pp) tt Azimuths(azi1) distG respG];
+    resp(uu+1,1:5)=[sourceIntConds(pp) tt Azimuths(azi2) distB respB];
+    resp(uu+2,1:5)=[sourceIntConds(pp) tt Azimuths(azi3) distR respR];
+    resp(uu+3,1:5)=[sourceIntConds(pp) tt Azimuths(azi4) distY respY];
 
     save(['ext_resp_' num2str(subNum)],'resp');
     uu=uu+4; % trial counter
     WaitSecs(1);
+
+    if pp == nTrialsPerSI/nTrialsPerPage % intensity change
+        Screen('FillRect', w ,colBG, [0 0 screenXpix screenYpix]);
+        Screen('Flip', w, 0, 1);
+        % Break message and weiter mit leertaste
+        Screen('TextSize',w,30);
+        DrawFormattedText(w,'Wir machen jetzt ein Paar Minuten Pause.','center','center',[0 0 0],120,0,0,1.5);
+        Screen('Flip', w, 0, 1);
+        Screen('TextSize',w,defaultTxtSize);
+        % wait for key after msg
+        while ~KbCheck; end
+        WaitSecs(0.6);
+    end % intensity change
+
 end % page
 
 results.participant=subNum;
-results.cols={'sourceIntensity','azi','distance','externalization'};
+results.cols={'sourceIntensity','stimType','azi','distance','externalization'};
 results.res=resp;
 save(['ext_resp_' num2str(subNum)],'results');
 
