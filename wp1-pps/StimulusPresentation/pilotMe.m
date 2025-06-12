@@ -17,6 +17,7 @@ end
 %% Flags
 flag.headphoneCheck = 0;
 flag.triggers = 0;
+breakBlock = 5;
 
 %% Set order of source intensity blocks
 sourceInt = [zeros(1,noBlocks/2), ones(1,noBlocks/2)];
@@ -634,8 +635,8 @@ for block = startBlockNo:noBlocks
     disp([char(10), 'Overall accuracy in block was ', num2str(blockAcc),'%']);
 
     %% Feedback to subject at the end of block
-    % if not last block
-    if block ~= noBlocks
+    % if not last block and not a break
+    if (block ~= noBlocks) && (block ~= breakBlock)
         % block ending text
         blockEndText = ['Ende von Block ', num2str(block), '! \n\n\n',...
             'Sie hatten ',num2str(blockAcc),'% richtige Antworten in diesem Block. \n',...
@@ -673,7 +674,52 @@ for block = startBlockNo:noBlocks
             diary off
             return;
         end
-    elseif block == noBlocks % if this was the last block
+
+    % if not last block and there is a break
+    elseif (block ~= noBlocks) && (block == breakBlock)
+        % user message
+        disp([char(10), 'There is a BREAK now!']);
+        disp('Only the experimenter can start the next block - press "SPACE" when ready');
+        
+        % block ending text
+        blockEndText = ['Ende von Block ', num2str(block), '. \n\n\n',... 
+                'In diesem Block hatten Sie ', num2str(round(blockAcc, 2)), '% richtige Antworten.\n\n\n',... 
+                'Jetzt machen wir eine kurze Pause.'];
+        % uniform background
+        Screen('FillRect', win, backGroundColor);
+        % draw block-starting text
+        DrawFormattedText(win, blockEndText, 'center', 'center', textColor);   
+        Screen('Flip', win);
+
+        while 1
+            [keyIsDown, ~, keyCode] = KbCheck;
+            if keyIsDown
+                % if subject is ready to start
+                if find(keyCode) == keys.go
+                    break;
+                elseif find(keyCode) == keys.abort
+                    abortFlag = 1;
+                    break;
+                end
+            end
+        end
+        if abortFlag
+            if flag.triggers
+                % ppdev_mex('Close', 1);
+                IOPort('Close',TB);
+            end
+            ListenChar(0);
+            Priority(0);
+            RestrictKeysForKbCheck([]);
+            PsychPortAudio('Close');
+            Screen('CloseAll');
+            ShowCursor(S.screen_number);
+            diary off
+            return;
+        end
+
+    % if this was the last block
+    elseif block == noBlocks 
         % user message
         disp([char(10), 'The task has ended.']);
         blockEndText = ['Ende vom letzten Block. \n',...
