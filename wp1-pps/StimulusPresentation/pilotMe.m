@@ -6,7 +6,7 @@ function pilotMe(subNum, noBlocks)
 % noBlocks  - number of experimental blocks (even number)
 
 % try
-diary(strcat('diaries/s',num2str(subNum),'_',string(datetime("today")))); 
+diary(strcat('diaries/s',num2str(subNum),'_',string(datetime("today"))));
 %% Input check
 if mod(noBlocks,2) ~=0
     warning(['Number of experimental blocks must be an even number, so I''m setting noBlocks to ',...
@@ -17,12 +17,12 @@ end
 %% Flags
 flag.headphoneCheck = 0;
 flag.triggers = 0;
-flag.practice = 0;
-flag.eyetrack = 0;
 
 %% Set order of source intensity blocks
 sourceInt = [zeros(1,noBlocks/2), ones(1,noBlocks/2)];
-sourceInt = sourceInt(randperm(length(sourceInt)));
+if mod(subNum,2)
+    sourceInt = flip(sourceInt);
+end
 
 %% Load/set params, stimuli, check for conflicts
 % Look for stimArray file in the subject's folder
@@ -55,12 +55,12 @@ end
 % Collect column numbers from the resulting stimArray
 %%%%%%% HARD-CODED VALUES %%%%%%%
 targetColumn = 10;
-audioColumn = 16;
-stimTypeColumn = 17;
-fsColumn = 15;
+audioColumn = 15;
+stimTypeColumn = 16;
+fsColumn = 14;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-fs = stimArray(1,fsColumn);
+fs = stimArray{1,fsColumn};
 
 %% Stimulus features for triggers + logging
 totalDurCue = cell2mat(logVar(2:end, strcmp(logHeader, 'totalDur'))); % duration of cue (w/o target or gap)
@@ -71,26 +71,112 @@ durStatOnset = cell2mat(logVar(2:end, strcmp(logHeader, 'durStatOnset'))); % req
 % user message
 disp([char(10), 'Extracted stimulus features']);
 
-%% Initialize Psychtoolbox (screen and audio)
-PsychDefaultSetup(1);
-Screen('Preference', 'SkipSyncTests', 1);
-InitializePsychSound(1);
+%% Initialize PsychPortAudio and Screen Number
+addpath('C:\Users\pkovacs\Documents\GitHub\cherish\wp1-pps\StimulusPresentation\externalization_pilot');
 
-% Select audio device
-device = 3;  % system default is our default as well
-% tmpDevices = PsychPortAudio('GetDevices');
-% for i = 1:numel(tmpDevices)
-%     % if strcmp(tmpDevices(i).DeviceName, 'Headphones (Conexant HD Audio headphone)')
-%     % if strcmp(tmpDevices(i).DeviceName, 'Speakers/Headphones (Realtek(R) Audio)')
-%         % device = tmpDevices(i).DeviceIndex;
-%     end
-% end
-% mode is simple playback
-mode = 1;
-% reqlatencyclass is set to low-latency
-reqLatencyClass = 2;
-% 2 channels output
-nrChannels = 2;
+%%% Thanks to David Meijer for providing code
+
+InitializePsychSound(1); % 1 pushes for low latency
+
+%%%%%%%%%%%%%%%%%%%%%%%%%
+%%% Select sound card %%% OptionsDialog.m needed
+%%%%%%%%%%%%%%%%%%%%%%%%%
+
+computer_IDs = {};
+sound_cards = {};
+screen_numbers = {};
+
+%On what computer are we?
+S.computer_ID = getenv('computername');
+computer_matches = cellfun(@(x) strcmp(x,S.computer_ID),computer_IDs);
+if any(computer_matches)
+    computer_nr = find(computer_matches);
+else
+    computer_nr = numel(computer_IDs)+1;
+    computer_IDs{end+1,1} = S.computer_ID;
+end
+
+
+%Retrieve all available sound devices
+sound_devices = PsychPortAudio('GetDevices');
+for i=1:numel(sound_devices)
+    full_name_audioDevices{i} = [num2str(sound_devices(i).DeviceIndex), '. ', sound_devices(i).HostAudioAPIName, ' - ', ...
+        sound_devices(i).DeviceName, ' - NrOfOutputChan = ', num2str(sound_devices(i).NrOutputChannels)];
+    full_name_audioDevices{i} = regexprep(full_name_audioDevices{i},'[\n\r]+','');  %Erase newlines and carriage returns
+end
+
+%Check if the saved audiocard for this computer still exists, if so set as default
+sound_card_default = 0;
+if (size(sound_cards,1) >= computer_nr) && ~isempty(sound_cards{computer_nr,1})
+    if any(cellfun(@(x) strcmp(x,sound_cards{computer_nr,1}),full_name_audioDevices))
+        sound_card_default = find(cellfun(@(x) strcmp(x,sound_cards{computer_nr,1}),full_name_audioDevices));
+    end
+end
+
+%If no known sound card was found, default to a Windows WASAPI sound card if available
+if ~sound_card_default
+    WASAPI_devices = strfind(full_name_audioDevices, 'WASAPI');             %cell-array with indices of characters of where 'WASAPI' was found in full_name_audioDevices
+    Loudspeaker_devices = strfind(full_name_audioDevices, 'Lautsprecher'); % keep only multi-channel (termed Lautsprecher)
+    first_WASAPI_Lsp_device = find(and(cellfun(@(x) ~isempty(x),WASAPI_devices),cellfun(@(x) ~isempty(x),Loudspeaker_devices)),1); %first device with WASAPI and Lautsprecher in the name
+    if ~isempty(first_WASAPI_Lsp_device)
+        sound_card_default = first_WASAPI_Lsp_device;
+    else
+        sound_card_default = 1;                                             %Default to first sound card if WASAPI was not found
+    end
+end
+
+%Let the user select the appropriate sound card
+[selected_option,continueBool] = OptionsDialog(full_name_audioDevices,sound_card_default,'Sound Card','Select the sound card');
+if ~continueBool
+    error('Program is aborted');                        %dialog window was closed
+end
+S.sound_card = full_name_audioDevices{selected_option};
+S.sound_device_idx = sound_devices(selected_option).DeviceIndex;
+
+if strcmp(getenv('computername'),'EXPGRUEN')  % Manually overwrite the default sampling rate on the lab computer (default is 44100, but that leads to auditory delays relative to visual)
+    S.sound_sample_rate = 48000;
+else
+    S.sound_sample_rate = sound_devices(selected_option).DefaultSampleRate;
+end
+
+%If this sound_card was not known yet, then remember it for this computer
+if (size(sound_cards,1) < computer_nr) || isempty(sound_cards{computer_nr,1}) || ~strcmp(S.sound_card,sound_cards{computer_nr,1})
+    sound_cards{computer_nr,1} = S.sound_card;
+end
+
+%%%%%%%%%%%%%%%%%%%%%
+%%% Select screen %%% OptionsDialog.m needed
+%%%%%%%%%%%%%%%%%%%%%
+
+available_screens = Screen('Screens');
+
+%Check if the saved screen_number is available to set as default choice
+screen_number_default = NaN;
+if (size(screen_numbers,1) >= computer_nr) && ~isempty(screen_numbers{computer_nr,1})
+    if ismember(screen_numbers{computer_nr,1},available_screens)
+        screen_number_default = find(screen_numbers{computer_nr,1} == available_screens);
+    end
+end
+if isnan(screen_number_default)
+    screen_number_default = numel(available_screens);
+end
+
+%Let the user select the appropriate screen number
+[selected_option,continueBool] = OptionsDialog(num2cell(available_screens),screen_number_default,'Screen Number','Select the screen number');
+if ~continueBool
+    error('Program is aborted');                                            %dialog window was closed
+end
+S.screen_number = available_screens(selected_option);
+
+%If this screen_number was not known yet, then remember it for this computer
+if (size(screen_numbers,1) < computer_nr) || isempty(screen_numbers{computer_nr,1}) || ~strcmp(S.screen_number,screen_numbers{computer_nr,1})
+    screen_numbers{computer_nr,1} = S.screen_number;
+end
+
+fs = 48000;
+pahandle = PsychPortAudio('Open', S.sound_device_idx, 1, 1, fs, 2);
+PsychDefaultSetup(2);
+Screen('Preference', 'SkipSyncTests', 1);
 
 % user message
 disp([char(10), 'Set audio parameters']);
@@ -119,12 +205,9 @@ GetSecs; WaitSecs(0.1); KbCheck();
 % screen params, screen selection
 backGroundColor = [0 0 0];
 textColor = [255 255 255];
-% screens=Screen('Screens');
-% screenNumber=max(screens);  % look into XOrgConfCreator and XOrgConfSelector
-screenNumber = 1;
 
 % open stimulus window
-[win, rect] = Screen('OpenWindow', screenNumber, backGroundColor);
+[win, rect] = Screen('OpenWindow', S.screen_number, backGroundColor);
 
 % query frame duration for window
 ifi = Screen('GetFlipInterval', win);
@@ -150,13 +233,6 @@ fixCrossWin = Screen('OpenOffscreenWindow', win, backGroundColor, rect);
 Screen('BlendFunction', fixCrossWin, 'GL_SRC_ALPHA', 'GL_ONE_MINUS_SRC_ALPHA');
 Screen('DrawLines', fixCrossWin, allCoords,...
     lineWidthPix, textColor, [xCenter yCenter], 2);
-
-% open PsychPortAudio device for playback
-pahandle = PsychPortAudio('Open', device, mode, reqLatencyClass, fs, nrChannels);
-% get and display device status
-pahandleStatus = PsychPortAudio('GetStatus', pahandle);
-disp([char(10), 'PsychPortAudio device status: ']);
-disp(pahandleStatus);
 
 % initial start & stop of audio device to avoid potential initial latencies
 tmpSound = zeros(2, fs/10);  % silence
@@ -201,11 +277,11 @@ logVar(2:end, strcmp(logHeader, 'trigger')) = num2cell(trig.stimType);
 % user message
 disp([char(10), 'Set up triggers']);
 
-% Set iti: M(SD) = 1500(100) ms, rounded to nearest 100, in sec
-iti = round((1.5+0.1.*randn(1,length(stimArray))),1);
+% set random ITI between 2600-2800 ms, with round 100 ms values
+iti = (randi([26,28], [size(stimArray, 1) 1]))/10;  % in secs
 
 % response time interval
-respInt = 1; 
+respInt = 1;
 
 % response variables preallocation
 respTime = nan(size(stimArray, 1), 1);
@@ -214,7 +290,7 @@ accuracy = respTime;
 % set flag for aborting experiment
 abortFlag = 0;
 % hide mouse
-HideCursor(screenNumber);
+HideCursor(S.screen_number);
 % suppress keyboard input to command window
 ListenChar(-1);
 % realtime priority
@@ -243,12 +319,11 @@ disp([char(10), 'Initialized psychtoolbox basics, opened window, ',...
 
 %% Instructions phase
 % instructions text
-instrText = ['Now you will hear sounds moving in different directions. \n',...
-    'After some of these sounds, you will sometimes hear a brief target sound. \n\n',...
-    'Detect the target sound as quickly and accurately as possible: press ENTER if you heard it. \n',...
-    'Don''t press anything if you didn''t hear the target sound. \n\n',...
-    'Some blocks will have soft sounds, while other blocks will be louder. \n\n', ...
-    '<Press SPACE to continue>'];
+instrText = ['Sie werden jetzt Töne hören, die sich in verschiedenen Richtungen bewegen. \n',...
+    'Nach einigen dieser Töne hören Sie einen kurzen Zielton. \n\n',...
+    'Erkenne den Zielton so rasch und pünktlich wie möglich: Drücken Sie die Eingabetaste, wenn Sie ihn gehört haben. \n',...
+    'Drücken Sie nichts, wenn Sie den Zielton nicht gehört haben. \n\n',...
+    '<Drücken Sie die Leertaste, um fortzufahren>'];
 
 % write instructions to text
 Screen('FillRect', win, backGroundColor);
@@ -283,14 +358,13 @@ if abortFlag
     RestrictKeysForKbCheck([]);
     PsychPortAudio('Close');
     Screen('CloseAll');
-    ShowCursor(screenNumber);
+    ShowCursor(S.screen_number);
     diary off
     return;
 end
 
 % user message
 disp([char(10), 'Subject signalled she/he is ready, we go ahead with the task']);
-
 
 %% Blocks loop
 
@@ -299,7 +373,7 @@ for block = startBlockNo:noBlocks
 
     % If low source intensity block, scale down
     if sourceInt(block) == 0
-        SPL = db(0.2); 
+        SPL = db(0.2/2);
         disp('Low intensity block');
     else
         SPL = db(1);
@@ -334,15 +408,16 @@ for block = startBlockNo:noBlocks
 
     % block starting text
     if sourceInt(block) == 0
-        intensityInfo = 'This block will have relatively soft sounds.';
+        intensityInfo = 'In diesem Block sind alle Töne relativ leise.';
     else
-        intensityInfo = 'This block will have relatively loud sounds.';
+        intensityInfo = 'In diesem Block sind alle Töne relativ laut.';
     end
 
-    blockStartText = ['Beginning block ', num2str(block), '. \n\n',...
+    blockStartText = ['Block ', num2str(block), ' beginnt. \n\n',...
         intensityInfo, '\n',...
-        'There will be ', num2str(length(trialList)), ' trials in the block.\n\n\n',...
-        'Ready? Press SPACE to begin.'];
+        'Es gibt ', num2str(length(trialList)), ' Proben im Block.\n',...
+        'Vergessen Sie nicht ENTER zu drücken, wenn Sie den kurzen Zielton hören. \n\n\n',...
+        'Bereit? Drücken Sie die Leertaste um zu beginnen.'];
 
     % uniform background
     Screen('FillRect', win, backGroundColor);
@@ -374,7 +449,7 @@ for block = startBlockNo:noBlocks
         RestrictKeysForKbCheck([]);
         PsychPortAudio('Close');
         Screen('CloseAll');
-        ShowCursor(screenNumber);
+        ShowCursor(S.screen_number);
         diary off
         return;
     end
@@ -397,10 +472,10 @@ for block = startBlockNo:noBlocks
 
     % trial loop (over the trials for given block)
     for trial = min(trialList):max(trialList)
-        
+
         % relative trial number (trial in given block)
         trialCounterForBlock = trialCounterForBlock+1;
-        
+
         % background with fixation cross, get trial start timestamp
         Screen('CopyWindow', fixCrossWin, win);
         Screen('DrawingFinished', win);
@@ -472,36 +547,36 @@ for block = startBlockNo:noBlocks
         respFlag = 0;
 
         % while GetSecs >= startTime+totalDurCue(trial) % cue has ended
-            while GetSecs <= startTime+totalDurWithTarget(trial)+respInt % response interval hasn't ended
-                [keyIsDown, respSecs, keyCode] = KbCheck;
-                if keyIsDown % if subject responded
-                    if find(keyCode) == keys.respTarget % and it was the detection button
-                        respFlag = 1;
-                        if cell2mat(stimArray(trial,targetColumn)) == 1 % and there is a target in the trial
-                            accuracy(trial) = 1;
-                        else
-                            accuracy(trial) = 0;
-                        end
-                        % response trigger
-                        if flag.triggers
-                            IOPort('Write',TB,uint8(trig.resp),0);
-                            pause(0.01);
-                            IOPort('Write', TB, uint8(0),0);
-                            pause(0.01);
-                        end
-                        break;
-                    elseif find(keyCode) == keys.abort % if it was the escape button
-                        abortFlag = 1;
-                        break;
-                    end
-                else % if subject did not respond
-                    if cell2mat(stimArray(trial,targetColumn)) == 0 % and there is no target in the trial
+        while GetSecs <= startTime+totalDurWithTarget(trial)+respInt % response interval hasn't ended
+            [keyIsDown, respSecs, keyCode] = KbCheck;
+            if keyIsDown % if subject responded
+                if find(keyCode) == keys.respTarget % and it was the detection button
+                    respFlag = 1;
+                    if cell2mat(stimArray(trial,targetColumn)) == 1 % and there is a target in the trial
                         accuracy(trial) = 1;
                     else
                         accuracy(trial) = 0;
                     end
+                    % response trigger
+                    if flag.triggers
+                        IOPort('Write',TB,uint8(trig.resp),0);
+                        pause(0.01);
+                        IOPort('Write', TB, uint8(0),0);
+                        pause(0.01);
+                    end
+                    break;
+                elseif find(keyCode) == keys.abort % if it was the escape button
+                    abortFlag = 1;
+                    break;
+                end
+            else % if subject did not respond
+                if cell2mat(stimArray(trial,targetColumn)) == 0 % and there is no target in the trial
+                    accuracy(trial) = 1;
+                else
+                    accuracy(trial) = 0;
                 end
             end
+        end
         % end
 
         % if abort was requested, quit
@@ -514,7 +589,7 @@ for block = startBlockNo:noBlocks
             RestrictKeysForKbCheck([]);
             PsychPortAudio('Close');
             Screen('CloseAll');
-            ShowCursor(screenNumber);
+            ShowCursor(S.screen_number);
             diary off
             return;
         end
@@ -562,10 +637,10 @@ for block = startBlockNo:noBlocks
     % if not last block
     if block ~= noBlocks
         % block ending text
-        blockEndText = ['End of block ', num2str(block), '! \n\n\n',...
-            'You had ',num2str(blockAcc),'% correct responses in this block. \n',...
-            'Your average reaction time in this block was ',num2str(round(blockRT, 2)), ' ms. \n\n\n',...
-            'Press SPACE to begin next block.'];
+        blockEndText = ['Ende von Block ', num2str(block), '! \n\n\n',...
+            'Sie hatten ',num2str(blockAcc),'% richtige Antworten in diesem Block. \n',...
+            'Ihre durchschnittliche Reaktionszeit in diesem Block war ',num2str(round(blockRT, 2)), ' ms. \n\n\n',...
+            'Drücken Sie die Leertaste, um fortzufahren.'];
         % uniform background
         Screen('FillRect', win, backGroundColor);
         % draw block-starting text
@@ -594,17 +669,17 @@ for block = startBlockNo:noBlocks
             RestrictKeysForKbCheck([]);
             PsychPortAudio('Close');
             Screen('CloseAll');
-            ShowCursor(screenNumber);
+            ShowCursor(S.screen_number);
             diary off
             return;
         end
     elseif block == noBlocks % if this was the last block
         % user message
         disp([char(10), 'The task has ended.']);
-            blockEndText = ['End of last block. \n',...
-                'You had ',num2str(blockAcc),'% correct responses in this block. \n',...
-                'Your average reaction time in the last block was ',num2str(round(blockRT, 2)), ' ms. \n\n', ...
-                'This is the end of the experiment. This window closes soon...'];
+        blockEndText = ['Ende vom letzten Block. \n',...
+            'Sie hatten ',num2str(blockAcc),'% richtige Antworten in diesem Block. \n',...
+            'Ihre durchschnittliche Reaktionszeit im letzten Block war ',num2str(round(blockRT, 2)), ' ms. \n\n', ...
+            'Das Experiment ist abgeschlossen. Dieses Fenster schließt sich bald...'];
         % uniform background
         Screen('FillRect', win, backGroundColor);
         % draw block-starting text
@@ -638,6 +713,6 @@ Priority(0);
 RestrictKeysForKbCheck([]);
 PsychPortAudio('Close');
 Screen('CloseAll');
-ShowCursor;  
+ShowCursor;
 return
 end

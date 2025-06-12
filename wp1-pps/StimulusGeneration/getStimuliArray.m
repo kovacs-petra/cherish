@@ -15,9 +15,8 @@ function stimArray = getStimuliArray
 %               need
 %
 
-folders = {'28-Feb-2025-139','28-Feb-2025-1310','28-Feb-2025-1311',...
-        '28-Feb-2025-1311_1','28-Feb-2025-1311_2','28-Feb-2025-1311_3',...
-        '28-Feb-2025-1311_4','28-Feb-2025-1311_5'}; 
+folders = {'30-May-2025-114','30-May-2025-1126','30-May-2025-1149',...
+        '30-May-2025-1211'}; 
 
 % check for existence of folders
 for i = 1:length(folders)
@@ -37,10 +36,9 @@ end
 % fields we expect in params files
 paramFields = {
     'filename', ...
-    'frequency', ...         % Cue frequency in Hz
+    'f0', ...                % Cue f0 in Hz
     'totalDur', ...          % Cue duration in s
     'durStatOnset', ...      % Duration of stationary onset in the cue
-    ...'durStatOffset', ...     % Duration of stationary offset in the cue
     'onsetDistance', ...     % Cue onset distance in m
     'offsetDistance', ...    % Cue offset distance in m
     'direction',...          % 1 - radial, 2 - angular
@@ -50,13 +48,12 @@ paramFields = {
     'congruence', ...        % 1 - congruent target, 0 - incongruent target
     'targetAzimuth', ...     % 90 or -90 (deg)
     'sourceInt', ...         % 1 - high source intensity, 0 - low source intensity (placeholder)
-    'stimID', ...            % stimulus ID (which unique stimulus)
     'fs', ...                % sampling rate
 };
 
 % output variable collecting stimuli sets
 stimArray = cell(length(folders), 1);
-repeat = 4; % repeat each stimulus in the stimArray
+% repeat = 4; % repeat each stimulus in the stimArray
 
 for f = 1:length(folders)    
     disp([char(10), 'Loading params and audio from: ', folders{f}]);
@@ -83,7 +80,7 @@ for f = 1:length(folders)
     % preallocate all memory we need to include the audio as well (add
     % extra column for raw audio data)
     myCell = [myCell, repmat({zeros(size(out))}, size(myCell, 1), 1)];    
-    myCell = [myCell; repmat(myCell,repeat,1)];
+    % myCell = [myCell; repmat(myCell,repeat,1)];
     
     %% Loop through mat files containing audio data   
     for audio = 1:size(myCell, 1)

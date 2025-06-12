@@ -1,10 +1,8 @@
-function generateStimuli(nStimuli,trajectory)
-% Generate sound stimuli for CherISH wp1 in four possible trajectories: looming,
+function generateStimuli(trajectory)
+% Generate 100 sound stimuli for CherISH wp1 in four possible trajectories: looming,
 % receding, rotating near, rotating far
 %
 % Inputs:
-% nStimuli      - integer, number of stimuli to generate in the given trajectory
-%                 (has to be an even number for counterbalancing)
 % trajectory    - 1: looming, 2: receding, 3: rotating near, 4: rotating
 %                 far
 %
@@ -24,11 +22,11 @@ function generateStimuli(nStimuli,trajectory)
 disp(['The BRT Renderer App should be open for this. If it isn''t, ', newline,...
     'it''s not too late to press Ctrl + C and rethink your life.',newline]);
 
-if mod(nStimuli,2) ~= 0
-    warning(['nStimuli has to be even to allow to counterbalance some parameters. ', ...
-        'I''m setting nStimuli to ',num2str(nStimuli+1),'!']);
-    nStimuli = nStimuli+1;
-elseif trajectory > 4
+% if mod(nStimuli,2) ~= 0
+%     warning(['nStimuli has to be even to allow to counterbalance some parameters. ', ...
+%         'I''m setting nStimuli to ',num2str(nStimuli+1),'!']);
+%     nStimuli = nStimuli+1;
+if trajectory > 4
     disp('trajectory has to be an integer between 1 and 4, please try again.');
     disp(newline, '1 - loom, 2 - recede, 3 - rotate in PPS, 4 - rotate in EPS');
     trajectory = input(newline,'Input new trajectory here (1-4): ');
@@ -87,9 +85,12 @@ else
 end
 
 %% Preset some values
+% 100 stimuli
+nStimuli = 100;
+
 % Counterbalance target and no target + congruence-incongruence
-targetTrial = repmat([zeros(1),ones(1)],1,nStimuli/2); % 0101
-congruence = zeros(1,nStimuli);
+targetTrial = repmat([zeros(1),ones(1)],1,nStimuli/4); % 0101
+congruence = zeros(1,nStimuli/2);
 congruence(4:4:end) = 1;  % 0001
 
 % Randomize the order of targetTrial and congruence (together)
@@ -100,19 +101,20 @@ congruence = counterb(2,:);
 
 % Set placeholder for source intensity (will be set upon stimulus
 % presentation)
-sourceInt = zeros(1,nStimuli);
+sourceInt = zeros(1,nStimuli/2);
 
 % Set f0s and durations for stationary onsets to allow unique combos
 fmin = 310;
 fmax = 2*fmin; % 1 octave
-fShort = round(linspace(fmin,fmax,8),-1); % 8 unique f0 values
-fOptions = repmat(fShort,1,3); % repeated 3 times for the 3 unique duration values
-tOptions = zeros(1,length(fOptions)); % initialize vector for durations
-n = 0;
-for t = 0.6:0.1:0.8 % in sec
-    tOptions(1,(1+n):(length(fShort)+n)) = t; % repeat each duration value for each f0 value
-    n = n+length(fShort);
-end
+fShort = round(linspace(fmin,fmax,10),-1); % 10 unique f0 values
+fOptions = repmat(fShort,1,5); % repeated 10 times for 50 stimuli
+tOptions = repmat([0.6,0.7,0.8],1,17); % vector with at least 50 elements
+% tOptions = zeros(1,length(fOptions)); % initialize vector for durations
+% n = 0;
+% for t = 0.6:0.025:0.825 % in sec
+%     tOptions(1,(1+n):(length(fShort)+n)) = t; % repeat each duration value for each f0 value
+%     n = n+length(fShort);
+% end
 
 % Set offset azi
 offsetAzimuth = 90; 
@@ -156,7 +158,8 @@ oscsend(u, '/environment/enableDistanceAttenuation', 'sB', 'SDN', 1);
 % oscsend(u, '/environment/setShoeBoxRoom', 'sfff', 'SDN', 2.8, 4.1, 3); % dimensions of the brown lab
 
 %% Stimulus generation loop
-for stimNo = 1:2:nStimuli
+stimNo = 1;
+for i = 1:nStimuli/2
 
     % Progress update
     clc;
@@ -164,7 +167,7 @@ for stimNo = 1:2:nStimuli
     
     % Randomize f0 for cleaner ERPs (picked from previously set unique
     % values)
-    frequency = fOptions(stimNo);
+    frequency = fOptions(i);
 
     % Set stimulus ID: trajectory, side, and f0 info
     % switch offsetAzimuth; case 90; azID = 'L'; case -90; azID = 'R'; end
@@ -196,7 +199,7 @@ for stimNo = 1:2:nStimuli
     %% Set durations
     % Stationary portions
     buffer = 1; % 1 s buffer for BRT artefacts
-    durStatOnset = tOptions(stimNo)+buffer; 
+    durStatOnset = tOptions(i)+buffer; 
     % durStatOffset = ((randi(4,1)+4)/10);
 
     % Moving portion: duration calculated from distance and velocity
@@ -271,6 +274,7 @@ for stimNo = 1:2:nStimuli
     % Spatialize cue with BRT
     % WaitSecs(1);
     [cueSpat, cueParams] = BRTspat(wavname,totalDur,aziC,eleC,rC,savenameC,updateRate,u);
+    WaitSecs(2);
 
     % Cut off the onset and offset artefacts introduced by BRT during recording; 
     % apply Tukey window on the cue
@@ -310,7 +314,7 @@ for stimNo = 1:2:nStimuli
 
     %% Spatialize target separately, then concatenate with the cue
     % Because BRT is not good for very short sounds like the target
-    if targetTrial(stimNo) == 1
+    if targetTrial(i) == 1
         T = [gap' target; gap' target]; % target
     else
         T = [gap' gap'; gap' gap']; % no target
@@ -322,7 +326,7 @@ for stimNo = 1:2:nStimuli
 
         % Target azimuth is congruent (same as offset azimuth) half the time
         % and incongruent (opposite of offset azimuth) half the time
-        if congruence(stimNo) == 1
+        if congruence(i) == 1
             targetAzimuth = offsetAzimuth;
         else
             targetAzimuth = -offsetAzimuth;
@@ -353,13 +357,16 @@ for stimNo = 1:2:nStimuli
     filename = strcat(wavDir, '/', wavDir, '-', temp, num2str(stimNo));
     save(strcat(filename,'.mat'), "out", "fs", "cueParams");
 
+    figure; plot(out'); title(['f0=',num2str(frequency),', t=',num2str(durStatOnset)]); 
+    drawnow; WaitSecs(2); % Plot figure for checking
+
     % Add parameters to cell array for later saving
     outCsv(stimNo+1, :) = {filename, frequency, totalDur, durStatOnset, rMoving(1), ...
-        rMoving(2), direction, trajectory, offsetAzimuth, targetTrial(stimNo),...
-        congruence(stimNo), targetAzimuth, sourceInt(stimNo), fs};
+        rMoving(2), direction, trajectory, offsetAzimuth, targetTrial(i),...
+        congruence(i), targetAzimuth, sourceInt(i), fs};
 
     %% Add target to flipped cue to generate the other side
-    if targetTrial(stimNo+1) == 1
+    if targetTrial(i) == 1
         T = [gap' target; gap' target]; % target
     else
         T = [gap' gap'; gap' gap']; % no target
@@ -370,7 +377,7 @@ for stimNo = 1:2:nStimuli
 
         % Target azimuth is congruent (same as offset azimuth) half the time
         % and incongruent (opposite of offset azimuth) half the time
-        if congruence(stimNo) == 1
+        if congruence(i) == 1
             targetAzimuth = -offsetAzimuth;
         else
             targetAzimuth = offsetAzimuth;
@@ -402,12 +409,16 @@ for stimNo = 1:2:nStimuli
     save(strcat(filename,'.mat'), "out", "fs", "cueParams");
 
     % Add parameters to cell array for later saving
-    outCsv(stimNo+1, :) = {filename, frequency, totalDur, durStatOnset, rMoving(1), ...
-        rMoving(2), direction, trajectory, -offsetAzimuth, targetTrial(stimNo+1),...
-        congruence(stimNo+1), targetAzimuth, sourceInt(stimNo+1), fs};
+    outCsv(stimNo+2, :) = {filename, frequency, totalDur, durStatOnset, rMoving(1), ...
+        rMoving(2), direction, trajectory, -offsetAzimuth, targetTrial(i),...
+        congruence(i), targetAzimuth, sourceInt(i), fs};
 
     WaitSecs(3); % avoid BRT crashing
-    
+    stimNo = stimNo+2;
+
+    figure; plot(out'); title(['f0=',num2str(frequency),', t=',num2str(durStatOnset)]); 
+    drawnow; WaitSecs(2); % Plot figure for checking
+
 
 end % stimulus generation loop
 

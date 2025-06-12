@@ -32,6 +32,7 @@ cueParams = struct;
 %% Load and record cue
 oscsend(u,'/removeAllSources', 's', '');
 oscsend(u, '/source/loadSource', 'sss', 'Cue', cue, 'DirectivityModel');
+WaitSecs(3);
 
 % Set trajectory
 [x,y,z] = sph2cart(deg2rad(azi),deg2rad(ele),r);

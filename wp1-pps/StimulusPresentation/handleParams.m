@@ -110,11 +110,9 @@ logHeader = {...
     'subNum', ...
     'blockNo', ...
     'trialNo', ...
-    'stimID', ...
     'frequency', ...         % Cue frequency in Hz
     'totalDur', ...          % Cue duration in s
     'durStatOnset', ...      % Duration of stationary onset in the cue
-    ...'durStatOffset', ...     % Duration of stationary offset in the cue
     'onsetDistance', ...     % Cue onset distance in m
     'offsetDistance', ...    % Cue offset distance in m
     'direction',...          % 1 - radial, 2 - angular
@@ -264,7 +262,7 @@ disp([char(10), 'Loaded stimuli and saved out parameters/settings into params fi
 % attach stimulus type indices, block and trial indices to stimulus
 % array - but first a quick sanity check of stimArray size
 %%%%%% HARD-CODED VALUE %%%%%%
-cols = 16;
+cols = 15;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 if ~isequal(size(stimArray), [length(trialIdx), cols])
@@ -289,13 +287,11 @@ if ~logFileFlag
 
     % insert known columns in advance
     logVar(2:end, strcmp(logHeader, 'subNum'))          = num2cell(repmat(subNum, [size(stimArray, 1), 1]));  % subNum
-    logVar(2:end, strcmp(logHeader, 'blockNo'))         = stimArray(:, 18);
-    logVar(2:end, strcmp(logHeader, 'trialNo'))         = stimArray(:, 19);
-    logVar(2:end, strcmp(logHeader, 'stimID'))          = stimArray(:, 14);
+    logVar(2:end, strcmp(logHeader, 'blockNo'))         = stimArray(:, 17);
+    logVar(2:end, strcmp(logHeader, 'trialNo'))         = stimArray(:, 18);
     logVar(2:end, strcmp(logHeader, 'frequency'))       = stimArray(:, 2);
     logVar(2:end, strcmp(logHeader, 'totalDur'))        = stimArray(:, 3);  
     logVar(2:end, strcmp(logHeader, 'durStatOnset'))    = stimArray(:, 4);   
-    % logVar(2:end, strcmp(logHeader, 'durStatOffset'))   = stimArray(:, 5);
     logVar(2:end, strcmp(logHeader, 'onsetDistance'))   = stimArray(:, 5);
     logVar(2:end, strcmp(logHeader, 'offsetDistance'))  = stimArray(:, 6);
     logVar(2:end, strcmp(logHeader, 'direction'))       = stimArray(:, 7);
@@ -304,7 +300,7 @@ if ~logFileFlag
     logVar(2:end, strcmp(logHeader, 'targetTrial'))     = stimArray(:, 10);
     logVar(2:end, strcmp(logHeader, 'congruence'))      = stimArray(:, 11);
     logVar(2:end, strcmp(logHeader, 'targetAzimuth'))   = stimArray(:, 12);
-    logVar(2:end, strcmp(logHeader, 'fs'))              = stimArray(:, 15);
+    logVar(2:end, strcmp(logHeader, 'fs'))              = stimArray(:, 14);
 
 end
 
@@ -317,7 +313,7 @@ if logFileFlag
     
     % extract recorded response times and trial accuracies (use both as sanity check)
     logRT = cell2mat(logVar(2:end, strcmp(logHeader, 'respTime')));
-    logAcc = cell2mat(logVar(2:end, strcmp(logHeader, 'accDistance')));
+    logAcc = cell2mat(logVar(2:end, strcmp(logHeader, 'accuracy')));
     % sanity check against bad logs
     if ~isequal(size(logRT), size(logAcc))
         error('Estimates for the number of past trials are inconsistent, investigate!');
