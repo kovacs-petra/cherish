@@ -17,7 +17,7 @@ end
 %% Flags
 flag.headphoneCheck = 0;
 flag.triggers = 0;
-breakBlock = 5;
+breakBlock = 5; % after which block to take a break
 
 %% Set order of source intensity blocks
 sourceInt = [zeros(1,noBlocks/2), ones(1,noBlocks/2)];
