@@ -3,7 +3,7 @@ function [blockIdx, stimTypes, stimTypeIdx, stimArray, trialIdx] = stim2blocks(s
 %
 % USAGE: [blockIdx, stimTypes, stimTypeIdx, stimArray] = stim2blocks(stimArrayFile, blockNo)
 %
-% For stochastic CherISH wp-1 pilot. The function examines the
+% For CherISH wp-1. The function examines the
 % stimuli array for unique stimuli types and creates blocks containing
 % equal number of trials with each unique stimulus type. Returns block and
 % trial indices for each stimulus.
@@ -61,7 +61,7 @@ disp([char(10), 'Called stim2blocks with input args: ',...
 % number of expected cell columns for the stimuli array
 stimFeaturesNo = 15;
 % header for final stimTypes cell array (see the last code block)
-stimTypesHdr = {'trajectory','target','stimTypeIdx'};
+stimTypesHdr = {'trajectory','target','offsetAzimuth','stimTypeIdx'};
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % load stimuli
@@ -88,11 +88,11 @@ disp([char(10), 'Loaded stimuli array, found ', num2str(trialNo), ' trials, ',..
 %%%%%%%%%%%% HARD-CODED VALUES %%%%%%%%%%%
 trajectory = cell2mat(stimArray(:, 8));
 target = cell2mat(stimArray(:,10));
-% offsetAzimuth = cell2mat(stimArray(:,9));
+offsetAzimuth = cell2mat(stimArray(:,9));
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % unique combinations
-[stimTypes, ~, stimTypeIdx] = unique([trajectory,target], 'rows');
+[stimTypes, ~, stimTypeIdx] = unique([trajectory,target,offsetAzimuth], 'rows');
 
 % user message
 disp([char(10), 'There are ', num2str(size(stimTypes, 1)),... 
