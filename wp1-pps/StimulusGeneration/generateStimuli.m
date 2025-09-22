@@ -227,7 +227,7 @@ for i = 1:nStimuli/2
             linspace(offsetAzimuth, offsetAzimuth, round(durMoving/updateRate))];
     elseif trajectory >= 3 % rotating near or far: the laterality changes
         aziC = [linspace(360-offsetAzimuth, 360-offsetAzimuth, round(durStatOnset/updateRate)), ...
-            linspace(360-offsetAzimuth, offsetAzimuth, round(durMoving/updateRate))]; 
+            linspace(360-offsetAzimuth, offsetAzimuth, round(durMoving/updateRate))]; % goes behind the listener
     end
 
     %% Generate triangle waves for each portion
