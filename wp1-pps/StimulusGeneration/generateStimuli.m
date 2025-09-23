@@ -301,6 +301,7 @@ for i = 1:nStimuli/2
     durStatOnset = durStatOnset-buffer;
 
     % Scale cue
+    % 23.09.2025 - the problem probably lies here
     if trajectory < 4 % sound is in PPS at some point
         scaledb = 20 * log10(1 / max(cueSpatWin,[],"all")); % Scale to 1
     else % sound is in EPS all the way
