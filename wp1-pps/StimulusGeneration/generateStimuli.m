@@ -15,7 +15,7 @@ function generateStimuli(trajectory)
 % - BRT Renderer App (should be open when running this script)
 % - Auditory Modeling toolbox (AMT)
 % - SOFA Toolbox
-%
+
 % #Author: Petra Kovacs, 2025, Acoustics Research Institute, Vienna, Austria
 
 %% Initial user message and input check
@@ -74,7 +74,8 @@ mkdir(wavDir);
 % Set radii for all stimuli
 % Representative distances of each space in meter:
 PPS = 0.2;
-EPS = 2.0;
+% EPS = 2.0; % used in WP1
+EPS = 10; % trying different distances
 % v = 0.5; % velocity in m/s
 
 % Save data about direction (radial or angular)
@@ -90,6 +91,7 @@ nStimuli = 100;
 
 % Counterbalance target and no target + congruence-incongruence
 targetTrial = repmat([zeros(1),ones(1)],1,nStimuli/4); % 0101
+targetTrial = zeros(size(targetTrial)); % try stimuli w/o targets
 congruence = zeros(1,nStimuli/2);
 congruence(4:4:end) = 1;  % 0001
 
@@ -155,7 +157,7 @@ oscsend(u, '/listener/enableParallaxCorrection', 'sB', 'DefaultListener',1);
 oscsend(u, '/enableModel', 'sB', 'DirectPath', 1);
 oscsend(u, '/enableModel', 'sB', 'ReverbPath', 1);
 oscsend(u, '/environment/enableDistanceAttenuation', 'sB', 'SDN', 1);
-% oscsend(u, '/environment/setShoeBoxRoom', 'sfff', 'SDN', 2.8, 4.1, 3); % dimensions of the brown lab
+oscsend(u, '/environment/setShoeBoxRoom', 'sfff', 'SDN', 2.8, 4.1, 3); % dimensions of the brown lab
 
 %% Stimulus generation loop
 stimNo = 1;
@@ -203,8 +205,8 @@ for i = 1:nStimuli/2
     % durStatOffset = ((randi(4,1)+4)/10);
 
     % Moving portion: duration calculated from distance and velocity
-    % durMoving = abs(EPS-PPS)/v;
-    durMoving = 2;
+    % durMoving = 2; % used in WP1
+    durMoving = 1; % trying differnt durations
 
     % Calculate total duration 
     % totalDur = durStatOnset+durMoving+durStatOffset; % in s
@@ -302,16 +304,17 @@ for i = 1:nStimuli/2
 
     % Scale cue
     % 23.09.2025 - the problem lies here
-    if trajectory < 4 % sound is in PPS at some point
-        scaledb = 20 * log10(1 / max(cueSpatWin,[],"all")); % Scale to 1
-    else % sound is in EPS all the way
-        scaleto = PPS/EPS;
-        scaledb = 20 * log10(scaleto / max(cueSpatWin,[],"all")); % Scale to PPS/EPS (far sound is always softer)
-    end
-    scalecue1 = scaletodbspl(cueSpatWin(1,:)',dbspl(cueSpatWin(1,:)')+scaledb);
-    scalecue2 = scaletodbspl(cueSpatWin(2,:)',dbspl(cueSpatWin(2,:)')+scaledb);
-    scalecue = [scalecue1 scalecue2];
-    scalecueFlip = flip(scalecue,2); % other side
+    % if trajectory < 4 % sound is in PPS at some point
+    %     scaledb = 20 * log10(1 / max(cueSpatWin,[],"all")); % Scale to 1
+    % else % sound is in EPS all the way
+    %     scaleto = PPS/EPS;
+    %     scaledb = 20 * log10(scaleto / max(cueSpatWin,[],"all")); % Scale to PPS/EPS (far sound is always softer)
+    % end
+    % scalecue1 = scaletodbspl(cueSpatWin(1,:)',dbspl(cueSpatWin(1,:)')+scaledb);
+    % scalecue2 = scaletodbspl(cueSpatWin(2,:)',dbspl(cueSpatWin(2,:)')+scaledb);
+    % scalecue = [scalecue1 scalecue2];
+    % scalecueFlip = flip(scalecue,2); % other side
+    scalecue = cueSpatWin';
 
     %% Spatialize target separately, then concatenate with the cue
     % Because BRT is not good for very short sounds like the target

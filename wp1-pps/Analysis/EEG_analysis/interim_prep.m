@@ -66,7 +66,7 @@ for dd = 3:length(dir_epoched_data) % for each epoched file
         end
 
         % Save subject erp's as .fiff, which is the input to the Python analysis
-        fiff_name = strcat(filename(1:end-11),'-ave.fif');
+        fiff_name = strcat(filename(1:end-11),'-ave.fif'); % has to end in -ave.fif
         fiff_path = '\\kfs\fileserver\Projektdaten\CherISH\data\wp-1\EEG\09_fifData\';
         if contains(filename,'pps_hi')
             fieldtrip2fiff(strcat(fiff_path, fiff_name), PPS_hi);
