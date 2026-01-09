@@ -1,5 +1,7 @@
-function [model_azi,model_d] = prepTRF
-% Usage: [model] = prepTRF
+function [stim_loom,stim_rec,stim_pps,stim_eps,...
+         resp_loom,resp_rec,resp_pps,resp_eps] = prepTRF
+% Usage: [stim_loom,stim_rec,stim_pps,stim_eps,...
+%         resp_loom,resp_rec,resp_pps,resp_eps] = prepTRF
 %
 % Prepares stimuli and EEG files for analysis in the mTRF toolbox.
 %
@@ -21,8 +23,8 @@ NTrialsPerCond = 200;
 % NConds = 4;
 
 % Init model variable
-model_azi = cell(1,NSub);
-model_d = model_azi;
+% model_azi = cell(1,NSub);
+% model_d = model_azi;
 
 % Manage paths
 dir_name = '\\kfs.oeaw.ac.at\fileserver\Projektdaten\CherISH\data\wp-1\EEG\03_filtered\';
@@ -31,45 +33,6 @@ path_trf = '\\kfs.oeaw.ac.at\fileserver\Projektdaten\CherISH\tools\mTRF-Toolbox\
 dir_file = dir(dir_name);
 addpath(dir_name,path_eeglab,path_trf);
 [ALLEEG, EEG, CURRENTSET] = eeglab;
-
-% Merge sets to have one set per subject
-% for ss = allSub(1):allSub(end)
-%     sub = sprintf('%02d',ss);
-%
-%     for ff = 3:size(dir_file,1)
-%         filename = dir_file(ff).name;
-%         if contains(filename,sub) && contains(filename,'artrej.set')
-%             EEG = pop_loadset('filename',filename,'filepath', dir_name);
-%             [ALLEEG, EEG, CURRENTSET] = eeg_store( ALLEEG, EEG, 0 );
-%             EEG = eeg_checkset( EEG );
-%         end
-%     end
-%
-%     OUTEEG = pop_mergeset(ALLEEG, 1:NConds);
-%
-%     % Prepare stimuli structure
-%     if s
-%         stim = prepStim(NTrials,OUTEEG);
-%     end
-%
-%     % Prepare eeg structure
-%     if r
-%         resp = prepResp(NTrials,OUTEEG);
-%     end
-%
-%     % Check if stim and resp are the same size and do sg if not
-%     if size(stim.data{1},1) > size(resp.data{1},1)
-%         stim.data{1} = stim.data{1}(1:size(resp.data{1},1),:);
-%     elseif size(resp.data{1},1) > size(stim.data{1},1)
-%         resp.data{1} = resp.data{1}(1:size(resp.data,1),:);
-%     end
-%
-%     % Run the analysis
-%     model{ss-2} = mTRFtrain(stim.data,resp.data,stim.fs,1,-200,1000,0.1);
-%
-%     % Clear sets
-%     ALLEEG = []; EEG=[]; CURRENTSET=[];
-% end
 
 % Init stimulus structures
 stim_loom        = struct;
@@ -135,8 +98,11 @@ for i = 3:size(dir_file,1)
             prepStim(EEG,sub,stim_loom,stim_rec,stim_pps,stim_eps,...
                     resp_loom,resp_rec,resp_pps,resp_eps);
 
-        % Create eeg structures
-        % resp = prepResp(NTrialsPerCond,NSub,EEG,sub);
+        % Save sampling rate and channel locations
+        stim_loom.fs    = EEG.srate;
+        stim_rec.fs     = EEG.srate;
+        stim_pps.fs     = EEG.srate;
+        stim_eps.fs     = EEG.srate;
 
         % Clear memory
         ALLEEG = []; EEG = []; CURRENTSET = [];
@@ -146,106 +112,95 @@ end
 save('stim_resp_data_20260108.mat','stim_loom','stim_rec','stim_pps','stim_eps',...
     'resp_loom','resp_rec','resp_pps','resp_eps');
 
-% Save sampling rate and channel locations
-stim_loom.fs    = EEG.srate;
-stim_rec.fs     = EEG.srate;
-stim_pps.fs     = EEG.srate;
-stim_eps.fs     = EEG.srate;
-
-resp_loom.chanlocs           = resp_loom.data;
-resp_rec.chanlocs            = resp_loom.data;
-resp_eps.chanlocs            = resp_loom.data;
-resp_pps.chanlocs            = resp_loom.data;
-
-% Run the analysis
-        model_d{sub-2} = mTRFtrain(stim.data{1,:},resp.data,stim.fs,1,-100,1000,0.1);
-        model_azi{sub-2} = mTRFtrain(stim.data{2,:},resp.data,stim.fs,1,-100,1000,0.1);
-
-% Average over subjects
-% model_azi = cell(1,NSub);
-% model_d = model_a;
-% for ss = 1:NSub
-%     if isstruct(model_azi{1,ss})
-%         dist_models{1,ss} = model_azi{1,ss}.w(1,:,:);
-%         azi_models{1,ss} = model_azi{1,ss}.w(2,:,:);
-%     end
-% end
-
-mean_dist = mean([model_d{1,1}.w;model_d{1,2}.w;model_d{1,3}.w;model_d{1,4}.w;...
-    model_d{1,5}.w;model_d{1,6}.w;model_d{1,7}.w;model_d{1,8}.w;...
-    model_d{1,9}.w;model_d{1,10}.w;model_d{1,11}.w;model_d{1,12}.w;...
-    model_d{1,13}.w;model_d{1,14}.w;model_d{1,15}.w;model_d{1,16}.w;...
-    model_d{1,17}.w;model_d{1,18}.w;model_d{1,19}.w;model_d{1,20}.w;...
-    model_d{1,21}.w;model_d{1,22}.w]);
-
-mean_azi = mean([model_azi{1,1}.w;model_azi{1,2}.w;model_azi{1,3}.w;model_azi{1,4}.w;...
-    model_azi{1,5}.w;model_azi{1,6}.w;model_azi{1,7}.w;model_azi{1,8}.w;...
-    model_azi{1,9}.w;model_azi{1,10}.w;model_azi{1,11}.w;model_azi{1,12}.w;...
-    model_azi{1,13}.w;model_azi{1,14}.w;model_azi{1,15}.w;model_azi{1,16}.w;...
-    model_azi{1,17}.w;model_azi{1,18}.w;model_azi{1,19}.w;model_azi{1,20}.w;...
-    model_azi{1,21}.w;model_azi{1,22}.w]);
-
-m = struct;
-m.w = [mean_azi;mean_dist];
-m.b = model_azi{1,1}.b;
-m.t = model_azi{1,1}.t;
-m.fs = model_azi{1,1}.fs;
-m.Dir = model_azi{1,1}.Dir;
-m.type = model_azi{1,1}.type;
-
-% Separate models for azi and distance
-m_a = struct;
-m_a.w = mean_azi;
-m_a.b = model_azi{1,1}.b;
-m_a.t = model_azi{1,1}.t;
-m_a.fs = model_azi{1,1}.fs;
-m_a.Dir = model_azi{1,1}.Dir;
-m_a.type = model_azi{1,1}.type;
-
-m_d = struct;
-m_d.w = mean_dist;
-m_d.b = model_azi{1,1}.b;
-m_d.t = model_azi{1,1}.t;
-m_d.fs = model_azi{1,1}.fs;
-m_d.Dir = model_azi{1,1}.Dir;
-m_d.type = model_azi{1,1}.type;
-
-% Plot azi model
-figure;
-subplot(1,2,1)
-mTRFplot(m_a,'trf');
-title('TRF weights, azimuth model')
-grid on
-
-% Plot GFP
-subplot(1,2,2)
-mTRFplot(m_a,'gfp',[],'all');
-title('TRF Global Field Power, azimuth model')
-grid on
-
-% Plot distance model
-figure;
-subplot(1,2,1)
-mTRFplot(m_d,'trf');
-title('TRF weights, distance model')
-grid on
-
-% Plot GFP
-subplot(1,2,2)
-mTRFplot(m_d,'gfp',[],'all');
-title('TRF Global Field Power, distance model')
-grid on
-
-% Plot multivariate model
-figure;
-subplot(1,2,1)
-mTRFplot(m,'mtrf',[],'all');
-title('TRF weights')
-grid on
-
-% Plot GFP
-subplot(1,2,2)
-mTRFplot(m,'mgfp',[],'all');
-title('TRF Global Field Power')
-grid on
+% % Run the analysis
+%         model_d{sub-2} = mTRFtrain(stim.data{1,:},resp.data,stim.fs,1,-100,1000,0.1);
+%         model_azi{sub-2} = mTRFtrain(stim.data{2,:},resp.data,stim.fs,1,-100,1000,0.1);
+% 
+% % Average over subjects
+% % model_azi = cell(1,NSub);
+% % model_d = model_a;
+% % for ss = 1:NSub
+% %     if isstruct(model_azi{1,ss})
+% %         dist_models{1,ss} = model_azi{1,ss}.w(1,:,:);
+% %         azi_models{1,ss} = model_azi{1,ss}.w(2,:,:);
+% %     end
+% % end
+% 
+% mean_dist = mean([model_d{1,1}.w;model_d{1,2}.w;model_d{1,3}.w;model_d{1,4}.w;...
+%     model_d{1,5}.w;model_d{1,6}.w;model_d{1,7}.w;model_d{1,8}.w;...
+%     model_d{1,9}.w;model_d{1,10}.w;model_d{1,11}.w;model_d{1,12}.w;...
+%     model_d{1,13}.w;model_d{1,14}.w;model_d{1,15}.w;model_d{1,16}.w;...
+%     model_d{1,17}.w;model_d{1,18}.w;model_d{1,19}.w;model_d{1,20}.w;...
+%     model_d{1,21}.w;model_d{1,22}.w]);
+% 
+% mean_azi = mean([model_azi{1,1}.w;model_azi{1,2}.w;model_azi{1,3}.w;model_azi{1,4}.w;...
+%     model_azi{1,5}.w;model_azi{1,6}.w;model_azi{1,7}.w;model_azi{1,8}.w;...
+%     model_azi{1,9}.w;model_azi{1,10}.w;model_azi{1,11}.w;model_azi{1,12}.w;...
+%     model_azi{1,13}.w;model_azi{1,14}.w;model_azi{1,15}.w;model_azi{1,16}.w;...
+%     model_azi{1,17}.w;model_azi{1,18}.w;model_azi{1,19}.w;model_azi{1,20}.w;...
+%     model_azi{1,21}.w;model_azi{1,22}.w]);
+% 
+% m = struct;
+% m.w = [mean_azi;mean_dist];
+% m.b = model_azi{1,1}.b;
+% m.t = model_azi{1,1}.t;
+% m.fs = model_azi{1,1}.fs;
+% m.Dir = model_azi{1,1}.Dir;
+% m.type = model_azi{1,1}.type;
+% 
+% % Separate models for azi and distance
+% m_a = struct;
+% m_a.w = mean_azi;
+% m_a.b = model_azi{1,1}.b;
+% m_a.t = model_azi{1,1}.t;
+% m_a.fs = model_azi{1,1}.fs;
+% m_a.Dir = model_azi{1,1}.Dir;
+% m_a.type = model_azi{1,1}.type;
+% 
+% m_d = struct;
+% m_d.w = mean_dist;
+% m_d.b = model_azi{1,1}.b;
+% m_d.t = model_azi{1,1}.t;
+% m_d.fs = model_azi{1,1}.fs;
+% m_d.Dir = model_azi{1,1}.Dir;
+% m_d.type = model_azi{1,1}.type;
+% 
+% % Plot azi model
+% figure;
+% subplot(1,2,1)
+% mTRFplot(m_a,'trf');
+% title('TRF weights, azimuth model')
+% grid on
+% 
+% % Plot GFP
+% subplot(1,2,2)
+% mTRFplot(m_a,'gfp',[],'all');
+% title('TRF Global Field Power, azimuth model')
+% grid on
+% 
+% % Plot distance model
+% figure;
+% subplot(1,2,1)
+% mTRFplot(m_d,'trf');
+% title('TRF weights, distance model')
+% grid on
+% 
+% % Plot GFP
+% subplot(1,2,2)
+% mTRFplot(m_d,'gfp',[],'all');
+% title('TRF Global Field Power, distance model')
+% grid on
+% 
+% % Plot multivariate model
+% figure;
+% subplot(1,2,1)
+% mTRFplot(m,'mtrf',[],'all');
+% title('TRF weights')
+% grid on
+% 
+% % Plot GFP
+% subplot(1,2,2)
+% mTRFplot(m,'mgfp',[],'all');
+% title('TRF Global Field Power')
+% grid on
 

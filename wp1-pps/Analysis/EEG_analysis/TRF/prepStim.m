@@ -3,8 +3,8 @@ function [stim_loom,stim_rec,stim_pps,stim_eps,...
     prepStim(EEG,sub,stim_loom,stim_rec,stim_pps,stim_eps,...
             resp_loom,resp_rec,resp_pps,resp_eps)
 
-aDim             = 1; % dimension in which azi data is stored
-dDim             = 2; % dimension in which distance data is stored
+aDim = 1; % dimension in which azi data is stored
+dDim = 2; % dimension in which distance data is stored
 
 % Fill up stim.data with the stimulus position coordinates
 % aziData = repmat(1e10,size(EEG.data,2),1);
@@ -32,6 +32,10 @@ EPS = 2; % in m
 % Exclude eye channels
 noEyeChans = [1:4,6:9,11:20,22:26,28:size(EEG.data,1)];
 noEyeLocs = EEG.chanlocs(1,noEyeChans);
+resp_loom.chanlocs = noEyeLocs;
+resp_rec.chanlocs = noEyeLocs;
+resp_eps.chanlocs = noEyeLocs;
+resp_pps.chanlocs = noEyeLocs;
 
 i = 1;
 while i <= length(EEG.event) && i+1 <= length(EEG.event)
@@ -215,6 +219,7 @@ end
 % dData_res = resample(dData,1,10);
 % stim.data{1,:} = dData_res;
 % stim.data{2,:} = aziData_res;
+stim.data{sub} = {aziData,dData};
 % stim.fs = 0.1*stim.fs;
 
 % Turn nans back to inf if needed
