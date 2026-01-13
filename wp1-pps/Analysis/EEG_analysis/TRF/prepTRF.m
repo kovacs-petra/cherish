@@ -16,72 +16,72 @@ function [stim_loom,stim_rec,stim_pps,stim_eps,...
 
 % #Author: Petra Kovacs, 2025-2026, Austrian Academy of Sciences
 
-% Set number of observations
-NSub = 22;
-allSub = 3:24;
-NTrialsPerCond = 200;
-% NConds = 4;
+% % Set number of observations
+% NSub = 22;
+% allSub = 3:24;
+% NTrialsPerCond = 200;
+% % NConds = 4;
+% 
+% % Init model variable
+% % model_azi = cell(1,NSub);
+% % model_d = model_azi;
+% 
+% % Manage paths
+% dir_name = '\\kfs.oeaw.ac.at\fileserver\Projektdaten\CherISH\data\wp-1\EEG\03_filtered\';
+% path_eeglab = '\\kfs.oeaw.ac.at\Fileserver\Projektdaten\CherISH\tools\eeglab2025.0.0';
+% path_trf = '\\kfs.oeaw.ac.at\fileserver\Projektdaten\CherISH\tools\mTRF-Toolbox\mtrf';
+% dir_file = dir(dir_name);
+% addpath(dir_name,path_eeglab,path_trf);
+% [ALLEEG, EEG, CURRENTSET] = eeglab;
+% 
+% % Init stimulus structures
+% stim_loom        = struct;
+% stim_loom.names  = {'distance','azimuth'};
+% stim_loom.data   = cell(NSub,1);
+% 
+% stim_rec         = struct;
+% stim_rec.names   = {'distance','azimuth'};
+% stim_rec.data    = cell(NSub,1);
+% 
+% stim_pps         = struct;
+% stim_pps.names   = {'distance','azimuth'};
+% stim_pps.data    = cell(NSub,1);
+% 
+% stim_eps         = struct;
+% stim_eps.names   = {'distance','azimuth'};
+% stim_eps.data    = cell(NSub,1);
+% 
+% % Init response (EEG) structures
+% resp_loom                     = struct;
+% resp_loom.dataType            = 'EEG';
+% resp_loom.deviceName          = 'BrainVision';
+% resp_loom.data                = cell(NSub,NTrialsPerCond);
+% 
+% resp_rec                     = struct;
+% resp_rec.dataType            = 'EEG';
+% resp_rec.deviceName          = 'BrainVision';
+% resp_rec.data                = cell(NSub,1);
+% resp_rec.chanlocs            = resp_rec.data;
+% 
+% resp_pps                     = struct;
+% resp_pps.dataType            = 'EEG';
+% resp_pps.deviceName          = 'BrainVision';
+% resp_pps.data                = cell(NSub,1);
+% resp_pps.chanlocs            = resp_pps.data;
+% 
+% resp_eps                     = struct;
+% resp_eps.dataType            = 'EEG';
+% resp_eps.deviceName          = 'BrainVision';
+% resp_eps.data                = cell(NSub,1);
+% resp_eps.chanlocs            = resp_eps.data;
 
-% Init model variable
-% model_azi = cell(1,NSub);
-% model_d = model_azi;
-
-% Manage paths
-dir_name = '\\kfs.oeaw.ac.at\fileserver\Projektdaten\CherISH\data\wp-1\EEG\03_filtered\';
-path_eeglab = '\\kfs.oeaw.ac.at\Fileserver\Projektdaten\CherISH\tools\eeglab2025.0.0';
-path_trf = '\\kfs.oeaw.ac.at\fileserver\Projektdaten\CherISH\tools\mTRF-Toolbox\mtrf';
-dir_file = dir(dir_name);
-addpath(dir_name,path_eeglab,path_trf);
-[ALLEEG, EEG, CURRENTSET] = eeglab;
-
-% Init stimulus structures
-stim_loom        = struct;
-stim_loom.names  = {'distance','azimuth'};
-stim_loom.data   = cell(NSub,NTrialsPerCond);
-
-stim_rec         = struct;
-stim_rec.names   = {'distance','azimuth'};
-stim_rec.data    = cell(NSub,NTrialsPerCond);
-
-stim_pps         = struct;
-stim_pps.names   = {'distance','azimuth'};
-stim_pps.data    = cell(NSub,NTrialsPerCond);
-
-stim_eps         = struct;
-stim_eps.names   = {'distance','azimuth'};
-stim_eps.data    = cell(NSub,NTrialsPerCond);
-
-% Init response (EEG) structures
-resp_loom                     = struct;
-resp_loom.dataType            = 'EEG';
-resp_loom.deviceName          = 'BrainVision';
-resp_loom.data                = cell(NSub,NTrialsPerCond);
-
-resp_rec                     = struct;
-resp_rec.dataType            = 'EEG';
-resp_rec.deviceName          = 'BrainVision';
-resp_rec.data                = cell(NSub,NTrialsPerCond);
-resp_rec.chanlocs            = resp_rec.data;
-
-resp_pps                     = struct;
-resp_pps.dataType            = 'EEG';
-resp_pps.deviceName          = 'BrainVision';
-resp_pps.data                = cell(NSub,NTrialsPerCond);
-resp_pps.chanlocs            = resp_pps.data;
-
-resp_eps                     = struct;
-resp_eps.dataType            = 'EEG';
-resp_eps.deviceName          = 'BrainVision';
-resp_eps.data                = cell(NSub,NTrialsPerCond);
-resp_eps.chanlocs            = resp_eps.data;
-
-for i = 3:size(dir_file,1)
-    filename = dir_file(i).name;
-    sub = str2double(filename(7:8));
-
-    if ismember(sub,allSub) && contains(filename,'.set')
-
-        sub = sub-2;
+% for i = 3:size(dir_file,1)
+%     filename = dir_file(i).name;
+%     sub = str2double(filename(7:8));
+% 
+%     if ismember(sub,allSub) && contains(filename,'.set')
+% 
+%         sub = sub-2;
 
         % Load EEG data
         EEG = pop_loadset('filename',filename,'filepath', dir_name);
@@ -108,8 +108,8 @@ for i = 3:size(dir_file,1)
         ALLEEG = []; EEG = []; CURRENTSET = [];
         
     end
-end
-save('stim_resp_data_20260108.mat','stim_loom','stim_rec','stim_pps','stim_eps',...
+% end
+save('stim_resp_data_20260109.mat','stim_loom','stim_rec','stim_pps','stim_eps',...
     'resp_loom','resp_rec','resp_pps','resp_eps');
 
 % % Run the analysis
