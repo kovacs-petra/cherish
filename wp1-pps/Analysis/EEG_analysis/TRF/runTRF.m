@@ -38,7 +38,7 @@ loom_rmax   = []; rec_rmax   = []; pps_rmax   = []; eps_rmax   = [];
 loom_testR  = []; rec_testR  = []; pps_testR  = []; eps_testR  = []; 
 loom_trfWgt = []; rec_trfWgt = []; pps_trfWgt = []; eps_trfWgt = []; 
 
-for i = 3:size(dir_file,1)
+for i = 4:round(size(dir_file,1)/2) 
     filename = dir_file(i).name;
     sub = str2double(filename(7:8));
 

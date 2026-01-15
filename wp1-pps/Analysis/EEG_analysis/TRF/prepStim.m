@@ -296,20 +296,40 @@ end
 % rid of these elements
 for idx = 1:nfold-ntest
     if idx <= length(loom.strain) && isempty(loom.strain{idx,1})
-        loom.strain = loom.strain([1:idx-1,idx+1:end],1);
-        loom.rtrain = loom.rtrain([1:idx-1,idx+1:end],1);
+        if idx == loomTestTrial
+            loom.strain = loom.strain([1:idx-1,idx+1:end],1);
+            loom.rtrain = loom.rtrain([1:idx-1,idx+1:end],1);
+        else
+            loom.strain = loom.strain(1:idx-1);
+            loom.rtrain = loom.rtrain(1:idx-1);
+        end
     end
     if idx <= length(rec.strain) && isempty(rec.strain{idx,1})
-        rec.strain = rec.strain([1:idx-1,idx+1:end,[]],1);
-        rec.rtrain = rec.rtrain([1:idx-1,idx+1:end,[]],1);
+        if idx == recTestTrial
+            rec.strain = rec.strain([1:idx-1,idx+1:end],1);
+            rec.rtrain = rec.rtrain([1:idx-1,idx+1:end],1);
+        else
+            rec.strain = rec.strain(1:idx-1);
+            rec.rtrain = rec.rtrain(1:idx-1);
+        end
     end
     if idx <= length(pps.strain) && isempty(pps.strain{idx,1})
-        pps.strain = pps.strain([1:idx-1,idx+1:end,[]],1);
-        pps.rtrain = pps.rtrain([1:idx-1,idx+1:end,[]],1);
+        if idx == ppsTestTrial
+            pps.strain = pps.strain([1:idx-1,idx+1:end],1);
+            pps.rtrain = pps.rtrain([1:idx-1,idx+1:end],1);
+        else
+            pps.strain = pps.strain(1:idx-1);
+            pps.rtrain = pps.rtrain(1:idx-1);
+        end
     end
     if idx <= length(eps.strain) && isempty(eps.strain{idx,1})
-        eps.strain = eps.strain([1:idx-1,idx+1:end,[]],1);
-        eps.rtrain = eps.rtrain([1:idx-1,idx+1:end,[]],1);
+        if idx == ppsTestTrial
+            eps.strain = eps.strain([1:idx-1,idx+1:end],1);
+            eps.rtrain = eps.rtrain([1:idx-1,idx+1:end],1);
+        else
+            eps.strain = eps.strain(1:idx-1);
+            eps.rtrain = eps.rtrain(1:idx-1);
+        end
     end
 end
 
