@@ -1,13 +1,13 @@
 function [loom,rec,pps,eps...
             ...,resp_loom,resp_rec,resp_pps,resp_eps...
             ] = ...
-    prepStim(EEG,NTrialsPerCond,loom,rec,pps,eps...
+    prepStim(EEG,NTrialsPerCond,loom,rec,pps,eps,dDim,aDim...
             ...,resp_loom,resp_rec,resp_pps,resp_eps
             )
 
 NVar = length(loom.names);
-dDim = 1; % col in which azi data is stored
-aDim = 2; % col in which distance data is stored
+% dDim = 1; % col in which distance data is stored
+% aDim = 2; % col in which azi data is stored
 
 % Init stimulus position coordinates
 % aziData = repmat(1e10,size(EEG.data,2),1);
@@ -21,10 +21,10 @@ tr_pps = 159:162;
 tr_eps = 163:166;
 
 % Counter for trials in specific conditions
-loomTrial = 1;
-recTrial = 1;
-ppsTrial = 1;
-epsTrial = 1;
+loomTrial = 1; loomTestTrial = randi(NTrialsPerCond/2,1);
+recTrial = 1; recTestTrial = randi(NTrialsPerCond/2,1);
+ppsTrial = 1; ppsTestTrial = randi(NTrialsPerCond/2,1);
+epsTrial = 1; epsTestTrial = randi(NTrialsPerCond/2,1);
 
 % Exclude eye channels
 noEyeChans = [1:4,6:9,11:20,22:26,28:size(EEG.data,1)];
@@ -85,7 +85,7 @@ while i <= length(EEG.event) && i+1 <= length(EEG.event)
             end
 
             % Record stimulus and response data 
-            if loom.stest  == zeros(1,NVar) % First trial goes into the test set
+            if loomTrial  == loomTestTrial % Random trial goes into the test set
                 % % Stationary part % %
                 % Radius:
                 loom.stest(1:durStatOnset,dDim) = linspace(EPS,EPS,durStatOnset);
@@ -107,20 +107,20 @@ while i <= length(EEG.event) && i+1 <= length(EEG.event)
             else % Remaining trials go into the training set
                 % % Stationary part % %
                 % Radius:
-                loom.strain{loomTrial-1,1}(1:durStatOnset,dDim) = linspace(EPS,EPS,durStatOnset);
+                loom.strain{loomTrial,1}(1:durStatOnset,dDim) = linspace(EPS,EPS,durStatOnset);
                 % Azi:
-                loom.strain{loomTrial-1,1}(1:durStatOnset,aDim) = linspace(azi,azi,durStatOnset);
+                loom.strain{loomTrial,1}(1:durStatOnset,aDim) = linspace(azi,azi,durStatOnset);
 
                 % % Moving part % %
                 % Radius:
-                loom.strain{loomTrial-1,1}(durStatOnset+1:durStatOnset+durMov,dDim) = ...
+                loom.strain{loomTrial,1}(durStatOnset+1:durStatOnset+durMov,dDim) = ...
                     linspace(EPS,PPS,durMov);
                 % Azi:
-                loom.strain{loomTrial-1,1}(durStatOnset+1:durStatOnset+durMov,aDim) = ...
+                loom.strain{loomTrial,1}(durStatOnset+1:durStatOnset+durMov,aDim) = ...
                     linspace(azi,azi,durMov);
 
                 % % EEG data for this trial % % 
-                loom.rtrain{loomTrial-1,1}(1:durStatOnset+durMov,:) = EEG.data(noEyeChans,...
+                loom.rtrain{loomTrial,1}(1:durStatOnset+durMov,:) = EEG.data(noEyeChans,...
                 eventStartSamp:eventStartSamp+durStatOnset+durMov-1)';
             end
 
@@ -138,7 +138,7 @@ while i <= length(EEG.event) && i+1 <= length(EEG.event)
             end
 
             % Record stimulus and response data 
-            if rec.stest  == zeros(1,NVar) % First trial goes into the test set
+            if recTrial  == recTestTrial % Random trial goes into the test set
                 % % Stationary part % %
                 % Radius:
                 rec.stest(1:durStatOnset,dDim) = linspace(PPS,PPS,durStatOnset);
@@ -160,20 +160,20 @@ while i <= length(EEG.event) && i+1 <= length(EEG.event)
             else % Remaining trials go into the training set
                 % % Stationary part % %
                 % Radius:
-                rec.strain{recTrial-1,1}(1:durStatOnset,dDim) = linspace(PPS,PPS,durStatOnset);
+                rec.strain{recTrial,1}(1:durStatOnset,dDim) = linspace(PPS,PPS,durStatOnset);
                 % Azi:
-                rec.strain{recTrial-1,1}(1:durStatOnset,aDim) = linspace(azi,azi,durStatOnset);
+                rec.strain{recTrial,1}(1:durStatOnset,aDim) = linspace(azi,azi,durStatOnset);
 
                 % % Moving part % %
                 % Radius:
-                rec.strain{recTrial-1,1}(durStatOnset+1:durStatOnset+durMov,dDim) = ...
+                rec.strain{recTrial,1}(durStatOnset+1:durStatOnset+durMov,dDim) = ...
                     linspace(PPS,EPS,durMov);
                 % Azi:
-                rec.strain{recTrial-1,1}(durStatOnset+1:durStatOnset+durMov,aDim) = ...
+                rec.strain{recTrial,1}(durStatOnset+1:durStatOnset+durMov,aDim) = ...
                     linspace(azi,azi,durMov);
 
                 % % EEG data for this trial % % 
-                rec.rtrain{recTrial-1,1}(1:durStatOnset+durMov,:) = EEG.data(noEyeChans,...
+                rec.rtrain{recTrial,1}(1:durStatOnset+durMov,:) = EEG.data(noEyeChans,...
                 eventStartSamp:eventStartSamp+durStatOnset+durMov-1)';
             end
 
@@ -191,7 +191,7 @@ while i <= length(EEG.event) && i+1 <= length(EEG.event)
             end
 
             % Record stimulus and response data 
-            if pps.stest  == zeros(1,NVar) % First trial goes into the test set
+            if ppsTrial == ppsTestTrial % Random trial goes into the test set
                 % % Stationary part % %
                 % Radius:
                 pps.stest(1:durStatOnset,dDim) = linspace(PPS,PPS,durStatOnset);
@@ -213,20 +213,20 @@ while i <= length(EEG.event) && i+1 <= length(EEG.event)
             else % Remaining trials go into the training set
                 % % Stationary part % %
                 % Radius:
-                pps.strain{ppsTrial-1,1}(1:durStatOnset,dDim) = linspace(PPS,PPS,durStatOnset);
+                pps.strain{ppsTrial,1}(1:durStatOnset,dDim) = linspace(PPS,PPS,durStatOnset);
                 % Azi:
-                pps.strain{ppsTrial-1,1}(1:durStatOnset,aDim) = linspace(-azi,-azi,durStatOnset);
+                pps.strain{ppsTrial,1}(1:durStatOnset,aDim) = linspace(-azi,-azi,durStatOnset);
 
                 % % Moving part % %
                 % Radius:
-                pps.strain{ppsTrial-1,1}(durStatOnset+1:durStatOnset+durMov,dDim) = ...
+                pps.strain{ppsTrial,1}(durStatOnset+1:durStatOnset+durMov,dDim) = ...
                     linspace(PPS,PPS,durMov);
                 % Azi:
-                pps.strain{ppsTrial-1,1}(durStatOnset+1:durStatOnset+durMov,aDim) = ...
+                pps.strain{ppsTrial,1}(durStatOnset+1:durStatOnset+durMov,aDim) = ...
                     linspace(-azi,azi,durMov);
 
                 % % EEG data for this trial % % 
-                pps.rtrain{ppsTrial-1,1}(1:durStatOnset+durMov,:) = EEG.data(noEyeChans,...
+                pps.rtrain{ppsTrial,1}(1:durStatOnset+durMov,:) = EEG.data(noEyeChans,...
                 eventStartSamp:eventStartSamp+durStatOnset+durMov-1)';
             end
 
@@ -244,7 +244,7 @@ while i <= length(EEG.event) && i+1 <= length(EEG.event)
             end
 
             % Record stimulus and response data 
-            if eps.stest  == zeros(1,NVar) % First trial goes into the test set
+            if epsTrial  == epsTestTrial % Random trial goes into the test set
                 % % Stationary part % %
                 % Radius:
                 eps.stest(1:durStatOnset,dDim) = linspace(EPS,EPS,durStatOnset);
@@ -266,20 +266,20 @@ while i <= length(EEG.event) && i+1 <= length(EEG.event)
             else % Remaining trials go into the training set
                 % % Stationary part % %
                 % Radius:
-                eps.strain{epsTrial-1,1}(1:durStatOnset,dDim) = linspace(EPS,EPS,durStatOnset);
+                eps.strain{epsTrial,1}(1:durStatOnset,dDim) = linspace(EPS,EPS,durStatOnset);
                 % Azi:
-                eps.strain{epsTrial-1,1}(1:durStatOnset,aDim) = linspace(-azi,-azi,durStatOnset);
+                eps.strain{epsTrial,1}(1:durStatOnset,aDim) = linspace(-azi,-azi,durStatOnset);
 
                 % % Moving part % %
                 % Radius:
-                eps.strain{epsTrial-1,1}(durStatOnset+1:durStatOnset+durMov,dDim) = ...
+                eps.strain{epsTrial,1}(durStatOnset+1:durStatOnset+durMov,dDim) = ...
                     linspace(EPS,EPS,durMov);
                 % Azi:
-                eps.strain{epsTrial-1,1}(durStatOnset+1:durStatOnset+durMov,aDim) = ...
+                eps.strain{epsTrial,1}(durStatOnset+1:durStatOnset+durMov,aDim) = ...
                     linspace(-azi,azi,durMov);
 
                 % % EEG data for this trial % % 
-                eps.rtrain{epsTrial-1,1}(1:durStatOnset+durMov,:) = EEG.data(noEyeChans,...
+                eps.rtrain{epsTrial,1}(1:durStatOnset+durMov,:) = EEG.data(noEyeChans,...
                 eventStartSamp:eventStartSamp+durStatOnset+durMov-1)';
             end
 
@@ -295,21 +295,21 @@ end
 % If there's empty elements (missing trials) in strain (and rtrain), get
 % rid of these elements
 for idx = 1:nfold-ntest
-    if isempty(loom.strain{idx,1})
-        loom.strain = loom.strain(1:idx-1,1);
-        loom.rtrain = loom.rtrain(1:idx-1,1);
+    if idx <= length(loom.strain) && isempty(loom.strain{idx,1})
+        loom.strain = loom.strain([1:idx-1,idx+1:end],1);
+        loom.rtrain = loom.rtrain([1:idx-1,idx+1:end],1);
     end
-    if isempty(rec.strain{idx,1})
-        rec.strain = rec.strain(1:idx-1,1);
-        rec.rtrain = rec.rtrain(1:idx-1,1);
+    if idx <= length(rec.strain) && isempty(rec.strain{idx,1})
+        rec.strain = rec.strain([1:idx-1,idx+1:end,[]],1);
+        rec.rtrain = rec.rtrain([1:idx-1,idx+1:end,[]],1);
     end
-    if isempty(pps.strain{idx,1})
-        pps.strain = pps.strain(1:idx-1,1);
-        pps.rtrain = pps.rtrain(1:idx-1,1);
+    if idx <= length(pps.strain) && isempty(pps.strain{idx,1})
+        pps.strain = pps.strain([1:idx-1,idx+1:end,[]],1);
+        pps.rtrain = pps.rtrain([1:idx-1,idx+1:end,[]],1);
     end
-    if isempty(eps.strain{idx,1})
-        eps.strain = eps.strain(1:idx-1,1);
-        eps.rtrain = eps.rtrain(1:idx-1,1);
+    if idx <= length(eps.strain) && isempty(eps.strain{idx,1})
+        eps.strain = eps.strain([1:idx-1,idx+1:end,[]],1);
+        eps.rtrain = eps.rtrain([1:idx-1,idx+1:end,[]],1);
     end
 end
 
