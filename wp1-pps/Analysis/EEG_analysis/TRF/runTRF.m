@@ -4,6 +4,7 @@ function [loom,rec,pps,eps] = runTRF
 NSub = 22;
 allSub = 3:24;
 NTrialsPerCond = 200;
+saveSub = [];
 
 % Manage paths
 dir_name = '\\kfs.oeaw.ac.at\fileserver\Projektdaten\CherISH\data\wp-1\EEG\07_interpolated\';
@@ -22,12 +23,41 @@ loom.names  = {'distance','azimuth'};
 
 rec         = struct;
 rec.names   = {'distance','azimuth'};
+rec.allModels = struct;
+    rec.allModels.w = cell(NSub,1);
+    rec.allModels.b = cell(NSub,1);
+    rec.allModels.t = cell(NSub,1);
 
 pps         = struct;
 pps.names   = {'distance','azimuth'};
+pps.allModels = struct;
+    pps.allModels.w = cell(NSub,1);
+    pps.allModels.b = cell(NSub,1);
+    pps.allModels.t = cell(NSub,1);
 
 eps         = struct;
 eps.names   = {'distance','azimuth'};
+eps.allModels = struct;
+    eps.allModels.w = cell(NSub,1);
+    eps.allModels.b = cell(NSub,1);
+    eps.allModels.t = cell(NSub,1);
+
+allModels = struct;
+    allModels.loom.w = cell(NSub,1);
+    allModels.loom.b = cell(NSub,1);
+    allModels.loom.t = cell(NSub,1);
+
+    allModels.rec.w = cell(NSub,1);
+    allModels.rec.b = cell(NSub,1);
+    allModels.rec.t = cell(NSub,1);
+
+    allModels.pps.w = cell(NSub,1);
+    allModels.pps.b = cell(NSub,1);
+    allModels.pps.t = cell(NSub,1);
+
+    allModels.eps.w = cell(NSub,1);
+    allModels.eps.b = cell(NSub,1);
+    allModels.eps.t = cell(NSub,1);
 
 % Init saving the data
 loom_cvR    = []; rec_cvR    = []; pps_cvR    = []; eps_cvR    = [];
@@ -56,7 +86,7 @@ for i = 4:round(size(dir_file,1)/2)
         EEG.data = double(EEG.data);
 
         % Create stimuli and response structures
-        [loom,rec,pps,eps...
+        [loom,rec,pps,eps,nfold...
             ...,resp_loom,resp_rec,resp_pps,resp_eps...
             ] = ...
         prepStim(EEG,NTrialsPerCond,loom,rec,pps,eps,dDim,aDim...
@@ -153,15 +183,35 @@ for i = 4:round(size(dir_file,1)/2)
         pps_trfWgt  = [pps_trfWgt, w_chanavg_pps(:,aDim)]; 
         eps_trfWgt  = [eps_trfWgt, w_chanavg_eps(:,aDim)];
 
+        % Save all models
+        allModels.loom.w{sub,1} = loom.model.w;
+        allModels.loom.b{sub,1} = loom.model.b;
+        allModels.loom.t{sub,1} = loom.model.t;
+
+        allModels.rec.w{sub,1} = rec.model.w;
+        allModels.rec.b{sub,1} = rec.model.b;
+        allModels.rec.t{sub,1} = rec.model.t;
+
+        allModels.pps.w{sub,1} = pps.model.w;
+        allModels.pps.b{sub,1} = pps.model.b;
+        allModels.pps.t{sub,1} = pps.model.t;
+
+        allModels.eps.w{sub,1} = eps.model.w;
+        allModels.eps.b{sub,1} = eps.model.b;
+        allModels.eps.t{sub,1} = eps.model.t;
+
+        % Save subject numbers
+        saveSub = [saveSub,sub];
+
         % Save results so far
         save('results2.mat',"loom_cvR","rec_cvR","pps_cvR","eps_cvR",...
-            "loom_cvErr","rec_cvErr","pps_cvErr","eps_cvR",...
+            "loom_cvErr","rec_cvErr","pps_cvErr","eps_cvErr",...
             "loom_origD","rec_origD","pps_origA","eps_origA",...
             "loom_predD","rec_predD","pps_predA","eps_predA",...
             "loom_rmax","rec_rmax","pps_rmax","eps_rmax",...
             "loom_testR","rec_testR","pps_testR","eps_testR",...
             "loom_trfWgt","rec_trfWgt","pps_trfWgt","eps_trfWgt",...
-            "sub");
+            "allModels","saveSub");
     end
 end
 
@@ -171,6 +221,11 @@ mean_cvR_loom = mean(loom_cvR(:,:,dDim));
 mean_cvR_rec = mean(rec_cvR(:,:,dDim));
 mean_cvR_pps = mean(pps_cvR(:,:,aDim));
 mean_cvR_eps = mean(eps_cvR(:,:,aDim));
+
+std_cvR_loom
+std_cvR_rec
+std_cvR_pps
+std_cvR_eps
 
 % Cross-validation error
 mean_cvErr_loom = mean(loom_cvErr(:,:,dDim));
@@ -213,104 +268,104 @@ save('TRFresults.mat',"mean_cvR_loom","mean_cvR_rec","mean_cvR_pps","mean_cvR_ep
 toPlot = 0;
 if toPlot
 % % Plotting the data % %
-nfold = 200;
+plotTRFres(dDim,aDim,fs,nfold)
 
-% Looming
-figure
-subplot(2,2,1), errorbar(1:numel(lambda),mean(loom.cv.r(:,:,dDim)),std(loom.cv.r(:,:,dDim))/sqrt(nfold-1),'linewidth',2)
-set(gca,'xtick',1:length(lambda),'xticklabel',lambdavals), xlim([0,numel(lambda)+1]), axis square, grid on
-title('CV Accuracy'), xlabel('Regularization (1\times10^\lambda)'), ylabel('Correlation')
-
-% Plot CV error
-subplot(2,2,2), errorbar(1:numel(lambda),mean(loom.cv.err(:,:,dDim)),std(loom.cv.err(:,:,dDim))/sqrt(nfold-1),'linewidth',2)
-set(gca,'xtick',1:length(lambda),'xticklabel',lambdavals), xlim([0,numel(lambda)+1]), axis square, grid on
-title('CV Error'), xlabel('Regularization (1\times10^\lambda)'), ylabel('MSE')
-
-% Plot reconstruction
-subplot(2,2,3), plot((1:length(loom.stest))/fs,loom.stest(:,dDim),'linewidth',2), hold on
-plot((1:length(loom.pred(:,dDim)))/fs,mean(loom.pred(:,dDim),2),'linewidth',2), hold off, xlim([0,3]), axis square, grid on
-title('Reconstruction'), xlabel('Time (s)'), ylabel('Amplitude (a.u.)'), legend('Orig','Pred')
-
-% Plot test accuracy
-subplot(2,2,4), bar(1,loom.rmax), hold on, bar(2,mean(loom.test.r(dDim))), hold off
-set(gca,'xtick',1:2,'xticklabel',{'Val.','Test'}), axis square, grid on
-title('Model Performance'), xlabel('Dataset'), ylabel('Correlation')
-
-% EPS
-% Plot CV accuracy
-figure
-subplot(2,2,1), errorbar(1:numel(lambda),mean(eps.cv.r(:,:,aDim)),std(eps.cv.r(:,:,aDim))/sqrt(nfold-1),'linewidth',2)
-set(gca,'xtick',1:length(lambda),'xticklabel',lambdavals), xlim([0,numel(lambda)+1]), axis square, grid on
-title('CV Accuracy'), xlabel('Regularization (1\times10^\lambda)'), ylabel('Correlation')
-
-% Plot CV error
-subplot(2,2,2), errorbar(1:numel(lambda),mean(eps.cv.err(:,:,aDim)),std(eps.cv.err(:,:,aDim))/sqrt(nfold-1),'linewidth',2)
-set(gca,'xtick',1:length(lambda),'xticklabel',lambdavals), xlim([0,numel(lambda)+1]), axis square, grid on
-title('CV Error'), xlabel('Regularization (1\times10^\lambda)'), ylabel('MSE')
-
-% Plot reconstruction
-subplot(2,2,3), plot((1:length(eps.stest))/fs,eps.stest(:,aDim),'linewidth',2), hold on
-plot((1:length(eps.pred(:,aDim)))/fs,mean(eps.pred(:,aDim),2),'linewidth',2), hold off, xlim([0,3]), axis square, grid on
-title('Reconstruction'), xlabel('Time (s)'), ylabel('Amplitude (a.u.)'), legend('Orig','Pred')
-
-% Plot test accuracy
-subplot(2,2,4), bar(1,eps.rmax), hold on, bar(2,mean(eps.test.r(aDim))), hold off
-set(gca,'xtick',1:2,'xticklabel',{'Val.','Test'}), axis square, grid on
-title('Model Performance'), xlabel('Dataset'), ylabel('Correlation')
-
-% Rec
-figure
-subplot(2,2,1), errorbar(1:numel(lambda),mean(rec.cv.r(:,:,dDim)),std(rec.cv.r(:,:,dDim))/sqrt(nfold-1),'linewidth',2)
-set(gca,'xtick',1:length(lambda),'xticklabel',lambdavals), xlim([0,numel(lambda)+1]), axis square, grid on
-title('CV Accuracy'), xlabel('Regularization (1\times10^\lambda)'), ylabel('Correlation')
-
-% Plot CV error
-subplot(2,2,2), errorbar(1:numel(lambda),mean(rec.cv.err(:,:,dDim)),std(rec.cv.err(:,:,dDim))/sqrt(nfold-1),'linewidth',2)
-set(gca,'xtick',1:length(lambda),'xticklabel',lambdavals), xlim([0,numel(lambda)+1]), axis square, grid on
-title('CV Error'), xlabel('Regularization (1\times10^\lambda)'), ylabel('MSE')
-
-% Plot reconstruction
-subplot(2,2,3), plot((1:length(rec.stest))/fs,rec.stest(:,dDim),'linewidth',2), hold on
-plot((1:length(rec.pred(:,dDim)))/fs,mean(rec.pred(:,dDim),2),'linewidth',2), hold off, xlim([0,3]), axis square, grid on
-title('Reconstruction'), xlabel('Time (s)'), ylabel('Amplitude (a.u.)'), legend('Orig','Pred')
-
-% Plot test accuracy
-subplot(2,2,4), bar(1,rec.rmax), hold on, bar(2,mean(rec.test.r(dDim))), hold off
-set(gca,'xtick',1:2,'xticklabel',{'Val.','Test'}), axis square, grid on
-title('Model Performance'), xlabel('Dataset'), ylabel('Correlation')
-
-% PPS
-figure
-subplot(2,2,1), errorbar(1:numel(lambda),mean(pps.cv.r(:,:,aDim)),std(pps.cv.r(:,:,aDim))/sqrt(nfold-1),'linewidth',2)
-set(gca,'xtick',1:length(lambda),'xticklabel',lambdavals), xlim([0,numel(lambda)+1]), axis square, grid on
-title('CV Accuracy'), xlabel('Regularization (1\times10^\lambda)'), ylabel('Correlation')
-
-% Plot CV error
-subplot(2,2,2), errorbar(1:numel(lambda),mean(pps.cv.err(:,:,aDim)),std(pps.cv.err(:,:,aDim))/sqrt(nfold-1),'linewidth',2)
-set(gca,'xtick',1:length(lambda),'xticklabel',lambdavals), xlim([0,numel(lambda)+1]), axis square, grid on
-title('CV Error'), xlabel('Regularization (1\times10^\lambda)'), ylabel('MSE')
-
-% Plot reconstruction
-subplot(2,2,3), plot((1:length(pps.stest))/fs,pps.stest(:,aDim),'linewidth',2), hold on
-plot((1:length(pps.pred(:,aDim)))/fs,mean(pps.pred(:,aDim),2),'linewidth',2), hold off, xlim([0,3]), axis square, grid on
-title('Reconstruction'), xlabel('Time (s)'), ylabel('Amplitude (a.u.)'), legend('Orig','Pred')
-
-% Plot test accuracy
-subplot(2,2,4), bar(1,pps.rmax), hold on, bar(2,mean(pps.test.r(aDim))), hold off
-set(gca,'xtick',1:2,'xticklabel',{'Val.','Test'}), axis square, grid on
-title('Model Performance'), xlabel('Dataset'), ylabel('Correlation')
-
-
-figure;
-subplot(1,2,1)
-mTRFplot(loom.model,'trf');
-title('TRF weights')
-grid on
-
-% Plot GFP
-subplot(1,2,2)
-mTRFplot(loom.model,'gfp',[],'all');
-title('TRF Global Field Power')
-grid on
+% % Looming
+% figure
+% subplot(2,2,1), errorbar(1:numel(lambda),mean(loom.cv.r(:,:,dDim)),std(loom.cv.r(:,:,dDim))/sqrt(nfold-1),'linewidth',2)
+% set(gca,'xtick',1:length(lambda),'xticklabel',lambdavals), xlim([0,numel(lambda)+1]), axis square, grid on
+% title('CV Accuracy'), xlabel('Regularization (1\times10^\lambda)'), ylabel('Correlation')
+% 
+% % Plot CV error
+% subplot(2,2,2), errorbar(1:numel(lambda),mean(loom.cv.err(:,:,dDim)),std(loom.cv.err(:,:,dDim))/sqrt(nfold-1),'linewidth',2)
+% set(gca,'xtick',1:length(lambda),'xticklabel',lambdavals), xlim([0,numel(lambda)+1]), axis square, grid on
+% title('CV Error'), xlabel('Regularization (1\times10^\lambda)'), ylabel('MSE')
+% 
+% % Plot reconstruction
+% subplot(2,2,3), plot((1:length(loom.stest))/fs,loom.stest(:,dDim),'linewidth',2), hold on
+% plot((1:length(loom.pred(:,dDim)))/fs,mean(loom.pred(:,dDim),2),'linewidth',2), hold off, xlim([0,3]), axis square, grid on
+% title('Reconstruction'), xlabel('Time (s)'), ylabel('Amplitude (a.u.)'), legend('Orig','Pred')
+% 
+% % Plot test accuracy
+% subplot(2,2,4), bar(1,loom.rmax), hold on, bar(2,mean(loom.test.r(dDim))), hold off
+% set(gca,'xtick',1:2,'xticklabel',{'Val.','Test'}), axis square, grid on
+% title('Model Performance'), xlabel('Dataset'), ylabel('Correlation')
+% 
+% % EPS
+% % Plot CV accuracy
+% figure
+% subplot(2,2,1), errorbar(1:numel(lambda),mean(eps.cv.r(:,:,aDim)),std(eps.cv.r(:,:,aDim))/sqrt(nfold-1),'linewidth',2)
+% set(gca,'xtick',1:length(lambda),'xticklabel',lambdavals), xlim([0,numel(lambda)+1]), axis square, grid on
+% title('CV Accuracy'), xlabel('Regularization (1\times10^\lambda)'), ylabel('Correlation')
+% 
+% % Plot CV error
+% subplot(2,2,2), errorbar(1:numel(lambda),mean(eps.cv.err(:,:,aDim)),std(eps.cv.err(:,:,aDim))/sqrt(nfold-1),'linewidth',2)
+% set(gca,'xtick',1:length(lambda),'xticklabel',lambdavals), xlim([0,numel(lambda)+1]), axis square, grid on
+% title('CV Error'), xlabel('Regularization (1\times10^\lambda)'), ylabel('MSE')
+% 
+% % Plot reconstruction
+% subplot(2,2,3), plot((1:length(eps.stest))/fs,eps.stest(:,aDim),'linewidth',2), hold on
+% plot((1:length(eps.pred(:,aDim)))/fs,mean(eps.pred(:,aDim),2),'linewidth',2), hold off, xlim([0,3]), axis square, grid on
+% title('Reconstruction'), xlabel('Time (s)'), ylabel('Amplitude (a.u.)'), legend('Orig','Pred')
+% 
+% % Plot test accuracy
+% subplot(2,2,4), bar(1,eps.rmax), hold on, bar(2,mean(eps.test.r(aDim))), hold off
+% set(gca,'xtick',1:2,'xticklabel',{'Val.','Test'}), axis square, grid on
+% title('Model Performance'), xlabel('Dataset'), ylabel('Correlation')
+% 
+% % Rec
+% figure
+% subplot(2,2,1), errorbar(1:numel(lambda),mean(rec.cv.r(:,:,dDim)),std(rec.cv.r(:,:,dDim))/sqrt(nfold-1),'linewidth',2)
+% set(gca,'xtick',1:length(lambda),'xticklabel',lambdavals), xlim([0,numel(lambda)+1]), axis square, grid on
+% title('CV Accuracy'), xlabel('Regularization (1\times10^\lambda)'), ylabel('Correlation')
+% 
+% % Plot CV error
+% subplot(2,2,2), errorbar(1:numel(lambda),mean(rec.cv.err(:,:,dDim)),std(rec.cv.err(:,:,dDim))/sqrt(nfold-1),'linewidth',2)
+% set(gca,'xtick',1:length(lambda),'xticklabel',lambdavals), xlim([0,numel(lambda)+1]), axis square, grid on
+% title('CV Error'), xlabel('Regularization (1\times10^\lambda)'), ylabel('MSE')
+% 
+% % Plot reconstruction
+% subplot(2,2,3), plot((1:length(rec.stest))/fs,rec.stest(:,dDim),'linewidth',2), hold on
+% plot((1:length(rec.pred(:,dDim)))/fs,mean(rec.pred(:,dDim),2),'linewidth',2), hold off, xlim([0,3]), axis square, grid on
+% title('Reconstruction'), xlabel('Time (s)'), ylabel('Amplitude (a.u.)'), legend('Orig','Pred')
+% 
+% % Plot test accuracy
+% subplot(2,2,4), bar(1,rec.rmax), hold on, bar(2,mean(rec.test.r(dDim))), hold off
+% set(gca,'xtick',1:2,'xticklabel',{'Val.','Test'}), axis square, grid on
+% title('Model Performance'), xlabel('Dataset'), ylabel('Correlation')
+% 
+% % PPS
+% figure
+% subplot(2,2,1), errorbar(1:numel(lambda),mean(pps.cv.r(:,:,aDim)),std(pps.cv.r(:,:,aDim))/sqrt(nfold-1),'linewidth',2)
+% set(gca,'xtick',1:length(lambda),'xticklabel',lambdavals), xlim([0,numel(lambda)+1]), axis square, grid on
+% title('CV Accuracy'), xlabel('Regularization (1\times10^\lambda)'), ylabel('Correlation')
+% 
+% % Plot CV error
+% subplot(2,2,2), errorbar(1:numel(lambda),mean(pps.cv.err(:,:,aDim)),std(pps.cv.err(:,:,aDim))/sqrt(nfold-1),'linewidth',2)
+% set(gca,'xtick',1:length(lambda),'xticklabel',lambdavals), xlim([0,numel(lambda)+1]), axis square, grid on
+% title('CV Error'), xlabel('Regularization (1\times10^\lambda)'), ylabel('MSE')
+% 
+% % Plot reconstruction
+% subplot(2,2,3), plot((1:length(pps.stest))/fs,pps.stest(:,aDim),'linewidth',2), hold on
+% plot((1:length(pps.pred(:,aDim)))/fs,mean(pps.pred(:,aDim),2),'linewidth',2), hold off, xlim([0,3]), axis square, grid on
+% title('Reconstruction'), xlabel('Time (s)'), ylabel('Amplitude (a.u.)'), legend('Orig','Pred')
+% 
+% % Plot test accuracy
+% subplot(2,2,4), bar(1,pps.rmax), hold on, bar(2,mean(pps.test.r(aDim))), hold off
+% set(gca,'xtick',1:2,'xticklabel',{'Val.','Test'}), axis square, grid on
+% title('Model Performance'), xlabel('Dataset'), ylabel('Correlation')
+% 
+% 
+% figure;
+% subplot(1,2,1)
+% mTRFplot(loom.model,'trf');
+% title('TRF weights')
+% grid on
+% 
+% % Plot GFP
+% subplot(1,2,2)
+% mTRFplot(loom.model,'gfp',[],'all');
+% title('TRF Global Field Power')
+% grid on
 
 end
