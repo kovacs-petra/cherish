@@ -68,7 +68,7 @@ loom_rmax   = []; rec_rmax   = []; pps_rmax   = []; eps_rmax   = [];
 loom_testR  = []; rec_testR  = []; pps_testR  = []; eps_testR  = []; 
 loom_trfWgt = []; rec_trfWgt = []; pps_trfWgt = []; eps_trfWgt = []; 
 
-for i = 4:round(size(dir_file,1)/2) 
+for i = 3:round(size(dir_file,1)/2) 
     filename = dir_file(i).name;
     sub = str2double(filename(7:8));
 
@@ -211,59 +211,59 @@ for i = 4:round(size(dir_file,1)/2)
             "loom_rmax","rec_rmax","pps_rmax","eps_rmax",...
             "loom_testR","rec_testR","pps_testR","eps_testR",...
             "loom_trfWgt","rec_trfWgt","pps_trfWgt","eps_trfWgt",...
-            "allModels","saveSub");
+            "allModels","saveSub","lambda","lambdavals");
     end
 end
 
-% Average the data across subjects
-% Cross-validation accuracy
-mean_cvR_loom = mean(loom_cvR(:,:,dDim));
-mean_cvR_rec = mean(rec_cvR(:,:,dDim));
-mean_cvR_pps = mean(pps_cvR(:,:,aDim));
-mean_cvR_eps = mean(eps_cvR(:,:,aDim));
-
-std_cvR_loom
-std_cvR_rec
-std_cvR_pps
-std_cvR_eps
-
-% Cross-validation error
-mean_cvErr_loom = mean(loom_cvErr(:,:,dDim));
-mean_cvErr_rec = mean(rec_cvErr(:,:,dDim));
-mean_cvErr_pps = mean(pps_cvErr(:,:,aDim));
-mean_cvErr_eps = mean(eps_cvErr(:,:,aDim));
-
-% Original spatial location (Distance or Azi)
-mean_origD_loom = mean(loom_origD,2);
-mean_origD_rec = mean(rec_origD,2);
-mean_origA_pps = mean(pps_origA,2);
-mean_origA_eps = mean(eps_origA,2);
-
-% Model performance: largest r on the training set
-mean_rmax_loom = mean(loom_rmax);
-mean_rmax_rec = mean(rec_rmax);
-mean_rmax_pps = mean(pps_rmax);
-mean_rmax_eps = mean(eps_rmax);
-
-% Model performance: r on the test set
-mean_testR_loom = mean(loom_testR);
-mean_testR_rec = mean(rec_testR);
-mean_testR_pps = mean(pps_testR);
-mean_testR_eps = mean(eps_testR);
-
-% TRF weights
-mean_trfWgt_loom = mean(loom_trfWgt,2);
-mean_trfWgt_rec = mean(rec_trfWgt,2);
-mean_trfWgt_pps = mean(pps_trfWgt,2);
-mean_trfWgt_eps = mean(eps_trfWgt,2);
-
-save('TRFresults.mat',"mean_cvR_loom","mean_cvR_rec","mean_cvR_pps","mean_cvR_eps",...
-    "mean_cvErr_loom","mean_cvErr_rec","mean_cvErr_pps","mean_cvErr_eps",...
-    "mean_origD_loom","mean_origD_rec","mean_origA_pps","mean_origA_eps",...
-    "mean_rmax_loom","mean_rmax_rec","mean_rmax_pps","mean_rmax_eps",...
-    "mean_testR_loom","mean_testR_rec","mean_testR_pps","mean_testR_eps",...
-    "mean_trfWgt_loom","mean_trfWgt_rec","mean_trfWgt_pps","mean_trfWgt_eps", ...
-    "lambdavals","lambda");
+% % Average the data across subjects
+% % Cross-validation accuracy
+% mean_cvR_loom = mean(loom_cvR(:,:,dDim));
+% mean_cvR_rec = mean(rec_cvR(:,:,dDim));
+% mean_cvR_pps = mean(pps_cvR(:,:,aDim));
+% mean_cvR_eps = mean(eps_cvR(:,:,aDim));
+% 
+% std_cvR_loom
+% std_cvR_rec
+% std_cvR_pps
+% std_cvR_eps
+% 
+% % Cross-validation error
+% mean_cvErr_loom = mean(loom_cvErr(:,:,dDim));
+% mean_cvErr_rec = mean(rec_cvErr(:,:,dDim));
+% mean_cvErr_pps = mean(pps_cvErr(:,:,aDim));
+% mean_cvErr_eps = mean(eps_cvErr(:,:,aDim));
+% 
+% % Original spatial location (Distance or Azi)
+% mean_origD_loom = mean(loom_origD,2);
+% mean_origD_rec = mean(rec_origD,2);
+% mean_origA_pps = mean(pps_origA,2);
+% mean_origA_eps = mean(eps_origA,2);
+% 
+% % Model performance: largest r on the training set
+% mean_rmax_loom = mean(loom_rmax);
+% mean_rmax_rec = mean(rec_rmax);
+% mean_rmax_pps = mean(pps_rmax);
+% mean_rmax_eps = mean(eps_rmax);
+% 
+% % Model performance: r on the test set
+% mean_testR_loom = mean(loom_testR);
+% mean_testR_rec = mean(rec_testR);
+% mean_testR_pps = mean(pps_testR);
+% mean_testR_eps = mean(eps_testR);
+% 
+% % TRF weights
+% mean_trfWgt_loom = mean(loom_trfWgt,2);
+% mean_trfWgt_rec = mean(rec_trfWgt,2);
+% mean_trfWgt_pps = mean(pps_trfWgt,2);
+% mean_trfWgt_eps = mean(eps_trfWgt,2);
+% 
+% save('TRFresults.mat',"mean_cvR_loom","mean_cvR_rec","mean_cvR_pps","mean_cvR_eps",...
+%     "mean_cvErr_loom","mean_cvErr_rec","mean_cvErr_pps","mean_cvErr_eps",...
+%     "mean_origD_loom","mean_origD_rec","mean_origA_pps","mean_origA_eps",...
+%     "mean_rmax_loom","mean_rmax_rec","mean_rmax_pps","mean_rmax_eps",...
+%     "mean_testR_loom","mean_testR_rec","mean_testR_pps","mean_testR_eps",...
+%     "mean_trfWgt_loom","mean_trfWgt_rec","mean_trfWgt_pps","mean_trfWgt_eps", ...
+%     "lambdavals","lambda");
 
 toPlot = 0;
 if toPlot
