@@ -2,7 +2,8 @@ function [loom,rec,pps,eps] = runTRF
 
 % Set number of observations
 NSub = 22;
-allSub = 3:24;
+% allSub = 3:24;
+allSub = 3:13;
 NTrialsPerCond = 200;
 saveSub = [];
 
