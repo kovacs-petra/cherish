@@ -175,14 +175,14 @@ for i = 3:round(size(dir_file,1)/2)
         eps_testR   = [eps_testR, eps.test.r(:,aDim)];
 
         % TRF weights: what spatial location the brain represents
-        w_chanavg_loom = mean(loom.model.w,2);
-        w_chanavg_rec  = mean(rec.model.w,2);
-        w_chanavg_pps  = mean(pps.model.w,2);
-        w_chanavg_eps  = mean(eps.model.w,2);
-        loom_trfWgt = [loom_trfWgt, w_chanavg_loom(:,dDim)]; 
-        rec_trfWgt  = [rec_trfWgt, w_chanavg_rec(:,dDim)]; 
-        pps_trfWgt  = [pps_trfWgt, w_chanavg_pps(:,aDim)]; 
-        eps_trfWgt  = [eps_trfWgt, w_chanavg_eps(:,aDim)];
+        % w_chanavg_loom = mean(loom.model.w,2);
+        % w_chanavg_rec  = mean(rec.model.w,2);
+        % w_chanavg_pps  = mean(pps.model.w,2);
+        % w_chanavg_eps  = mean(eps.model.w,2);
+        % loom_trfWgt = [loom_trfWgt, w_chanavg_loom(:,dDim)]; 
+        % rec_trfWgt  = [rec_trfWgt, w_chanavg_rec(:,dDim)]; 
+        % pps_trfWgt  = [pps_trfWgt, w_chanavg_pps(:,aDim)]; 
+        % eps_trfWgt  = [eps_trfWgt, w_chanavg_eps(:,aDim)];
 
         % Save all models
         allModels.loom.w{sub,1} = loom.model.w;
@@ -203,6 +203,7 @@ for i = 3:round(size(dir_file,1)/2)
 
         % Save subject numbers
         saveSub = [saveSub,sub];
+        chanlocs = loom.chanlocs;
 
         % Save results so far
         save('results2.mat',"loom_cvR","rec_cvR","pps_cvR","eps_cvR",...
@@ -212,7 +213,7 @@ for i = 3:round(size(dir_file,1)/2)
             "loom_rmax","rec_rmax","pps_rmax","eps_rmax",...
             "loom_testR","rec_testR","pps_testR","eps_testR",...
             "loom_trfWgt","rec_trfWgt","pps_trfWgt","eps_trfWgt",...
-            "allModels","saveSub","lambda","lambdavals");
+            "allModels","saveSub","lambda","lambdavals","chanlocs");
     end
 end
 

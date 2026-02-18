@@ -192,7 +192,7 @@ load("results_s14-24_20260116.mat"); % s12-24
     allModels.eps.b = {allModels_s1.eps.b{1:8,1},allModels_s2.eps.b{9:11,1},...
         allModels_s3.eps.b{12:end,1}}';
 
-    % TRF weights: what spatial location the brain represents
+    % TRF weights
     % Transform model structs to have subject as the 4th dimension
     for ss = 1:NSub
         model_loom.wi(:,:,:,ss) = allModels.loom.w{ss,1};
@@ -236,12 +236,6 @@ load("results_s14-24_20260116.mat"); % s12-24
     model_eps.fs = 100;
     model_eps.Dir = -1;
     model_eps.type = 'multi';
-
-
-    % loom_trfWgt = [loom_trfWgt_s1,loom_trfWgt_s2,loom_trfWgt_s3]; 
-    % rec_trfWgt  = [rec_trfWgt_s1,rec_trfWgt_s2,rec_trfWgt_s3]; 
-    % pps_trfWgt  = [pps_trfWgt_s1,pps_trfWgt_s2,pps_trfWgt_s3];
-    % eps_trfWgt  = [eps_trfWgt_s1,eps_trfWgt_s2,eps_trfWgt_s3];
 
 %% Grand avgs
 % Cross-validation accuracy
@@ -290,11 +284,17 @@ mean_testR_rec = mean(rec_testR);
 mean_testR_pps = mean(pps_testR);
 mean_testR_eps = mean(eps_testR);
 
-% TRF weights
-mean_trfWgt_loom = mean(loom_trfWgt,2);
-mean_trfWgt_rec = mean(rec_trfWgt,2);
-mean_trfWgt_pps = mean(pps_trfWgt,2);
-mean_trfWgt_eps = mean(eps_trfWgt,2);
+% Save avgs
+save("TRFresults_20260119.mat","mean_cvR_loom","mean_cvR_rec","mean_cvR_pps","mean_cvR_eps",...
+    "std_cvR_loom","std_cvR_rec","std_cvR_pps","std_cvR_eps",...
+    "mean_cvErr_loom","mean_cvErr_rec","mean_cvErr_pps","mean_cvErr_eps",...
+    "std_cvErr_loom","std_cvErr_rec","std_cvErr_pps","std_cvErr_eps",...
+    "mean_origD_loom","mean_origD_rec","mean_origA_pps","mean_origA_eps",...
+    "mean_predD_loom","mean_predD_rec","mean_predA_pps","mean_predA_eps",...
+    "mean_rmax_loom","mean_rmax_rec","mean_rmax_pps","mean_rmax_eps",...
+    "mean_testR_loom","mean_testR_rec","mean_testR_pps","mean_testR_eps",...
+    "model_loom","model_rec","model_pps","model_eps",...
+    "lambda","lambdavals");
 
 %% Looming
 % Plot CV accuracy
@@ -391,25 +391,25 @@ sgtitle('Decoding results: ROTATING IN EPS')
 %% TRF filter plots
 figure(Name='TRF filters')
 subplot(2,2,1)
-mTRFplot(model_loom,'trf',dDim,"all",[0 0.61],0,1); % specify channels
+mTRFplot(loom.model,'trf',dDim,"all"); % specify channels
 grid on
-title('Looming TRF filter, channels: '), xlabel('Time (s)'), ylabel('TRF weights'), xlim([0 0.61])
+title('Looming TRF filter')
 
 subplot(2,2,2)
-mTRFplot(model_rec,'trf',dDim,"all",[0 0.61],0,1); % specify channels
+mTRFplot(rec.model,'trf',dDim,21); % specify channels
 grid on
-title('Receding TRF filter, channels: '), xlabel('Time (s)'), ylabel('TRF weights'), xlim([0 0.61])
+title('Receding TRF filter')
 
 subplot(2,2,3)
-mTRFplot(model_pps,'trf',aDim,"all",[0 0.61],0,1); % specify channels
+mTRFplot(pps.model,'trf',aDim,21); % specify channels
 grid on
-title('Rotating in PPS TRF filter, channels: '), xlabel('Time (s)'), ylabel('TRF weights'), xlim([0 0.61])
+title('Rotating in PPS TRF filter')
 
 subplot(2,2,4)
-mTRFplot(model_eps,'trf',aDim,"all",[0 0.61],0,1); % specify channels
+mTRFplot(eps.model,'trf',aDim,21); % specify channels
 grid on
-title('Rotating in EPS TRF filter, channels: '), xlabel('Time (s)'), ylabel('TRF weights'), xlim([0 0.61])
-sgtitle('TRF filters, channels: 30')
+title('Rotating in EPS TRF filter')
+sgtitle('TRF filters, channels: Cz')
 
 % subplot(2,2,1), plot((1:length(mean_trfWgt_loom))/fs,mean_trfWgt_loom,'linewidth',2), grid on
 % title('Looming TRF filter'), xlabel('Time (s)'), ylabel('TRF weights'), xlim([0 0.61])
