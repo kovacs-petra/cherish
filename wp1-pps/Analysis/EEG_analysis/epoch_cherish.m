@@ -1,7 +1,7 @@
 function epoch_cherish
 
 % Epoching script for CherISH WP1
-% Author: Petra Kovacs, Austrian Academy of Sciences, 2025
+% Author: Petra Kovacs, Austrian Academy of Sciences, 2026
 
 % % % Triggers: % % %
 %
@@ -35,7 +35,7 @@ if flags.eeg
     dir_name = uigetdir; % 07_interpolated > high_int or low_int
     dir_file = dir(dir_name);
     num_file = size(dir_file);
-    savepath = '\\KFS\Fileserver\ProjektDaten\CherISH\data\wp-1\EEG\08_epoched';
+    savepath = '\\KFS\Fileserver\ProjektDaten\CherISH\data\wp-1\EEG\08_epoched\PPSlo-EPShi';
 
     if contains(dir_name,'high_int')
         intCond = 'hi';
@@ -59,42 +59,42 @@ if flags.eeg
             [ALLEEG, EEG, CURRENTSET] = eeg_store( ALLEEG, EEG, 0 );
             EEG = eeg_checkset( EEG );
 
-            %% Looming epochs
-            EEG2 = pop_epoch( EEG, {'151'  '152'  '153'  '154'}, [-0.2 1], 'newname', 'loom', 'epochinfo', 'yes');
-            [ALLEEG EEG2 CURRENTSET] = pop_newset(ALLEEG, EEG2, 1,'overwrite','on','gui','off');
-            EEG2 = eeg_checkset( EEG2 );
-            % EEG2 = pop_rmbase( EEG2, [-200 0]); % remove baseline
-            EEG2 = pop_resample( EEG2, 100 ); % downsample to 100 Hz
-            EEG2 = pop_saveset( EEG2,  'filename', strcat('s',subNum,'_loom_',intCond,'.set'), 'filepath', savepath); % save dataset
-
-            % Reject artifacts (+- 100 uV)
-            EEG2 = pop_eegthresh(EEG2,1,[1:4,6:9,11:20,22:26,28:63],-100,100,0,1,0,0); % except channels 27 21 10 5
-            if ismember(0,EEG2.reject.rejthresh) % if there is anything NOT to reject
-                EEG2 = pop_rejepoch(EEG2,[EEG2.reject.rejthresh],0);
-                EEG2 = pop_saveset( EEG2,  'filename', strcat('s',subNum,'_loom_',intCond,'_artrej.set'), 'filepath', savepath);
-            else
-                warning(['Subject ',subNum,' has no epochs left after artefact rejection.']);
-            end
-
-            %% Receding epochs
-            EEG3 = pop_epoch( EEG, {'155'  '156'  '157'  '158'}, [-0.2 1], 'newname', 'rec', 'epochinfo', 'yes');
-            [ALLEEG EEG3 CURRENTSET] = pop_newset(ALLEEG, EEG3, 1,'overwrite','on','gui','off');
-            EEG3 = eeg_checkset( EEG3 );
-            % EEG3 = pop_rmbase( EEG3, [-200 0]); % remove baseline
-            EEG3 = pop_resample( EEG3, 100 ); % downsample to 100 Hz
-            EEG3 = pop_saveset( EEG3,  'filename', strcat('s',subNum,'_rec_',intCond,'.set'), 'filepath', savepath);% save dataset
-
-            % Reject artifacts (+- 100 uV)
-            EEG3 = pop_eegthresh(EEG3,1,[1:4,6:9,11:20,22:26,28:63],-100,100,0,1,0,0); %except channels 27 21 10 5
-            if ismember(0,EEG3.reject.rejthresh) % if there is anything NOT to reject
-                EEG3 = pop_rejepoch(EEG3,[EEG3.reject.rejthresh],0);
-                EEG3 = pop_saveset( EEG3,  'filename', strcat('s',subNum,'_rec_',intCond,'_artrej.set'), 'filepath', savepath);
-            else
-                warning(['Subject ',subNum,' has no epochs left after artefact rejection.']);
-            end
+            % %% Looming epochs
+            % EEG2 = pop_epoch( EEG, {'151'  '152'  '153'  '154'}, [-0.2 1], 'newname', 'loom', 'epochinfo', 'yes');
+            % [ALLEEG EEG2 CURRENTSET] = pop_newset(ALLEEG, EEG2, 1,'overwrite','on','gui','off');
+            % EEG2 = eeg_checkset( EEG2 );
+            % % EEG2 = pop_rmbase( EEG2, [-200 0]); % remove baseline
+            % EEG2 = pop_resample( EEG2, 100 ); % downsample to 100 Hz
+            % EEG2 = pop_saveset( EEG2,  'filename', strcat('s',subNum,'_loom_',intCond,'.set'), 'filepath', savepath); % save dataset
+            % 
+            % % Reject artifacts (+- 100 uV)
+            % EEG2 = pop_eegthresh(EEG2,1,[1:4,6:9,11:20,22:26,28:63],-100,100,0,1,0,0); % except channels 27 21 10 5
+            % if ismember(0,EEG2.reject.rejthresh) % if there is anything NOT to reject
+            %     EEG2 = pop_rejepoch(EEG2,[EEG2.reject.rejthresh],0);
+            %     EEG2 = pop_saveset( EEG2,  'filename', strcat('s',subNum,'_loom_',intCond,'_artrej.set'), 'filepath', savepath);
+            % else
+            %     warning(['Subject ',subNum,' has no epochs left after artefact rejection.']);
+            % end
+            % 
+            % %% Receding epochs
+            % EEG3 = pop_epoch( EEG, {'155'  '156'  '157'  '158'}, [-0.2 1], 'newname', 'rec', 'epochinfo', 'yes');
+            % [ALLEEG EEG3 CURRENTSET] = pop_newset(ALLEEG, EEG3, 1,'overwrite','on','gui','off');
+            % EEG3 = eeg_checkset( EEG3 );
+            % % EEG3 = pop_rmbase( EEG3, [-200 0]); % remove baseline
+            % EEG3 = pop_resample( EEG3, 100 ); % downsample to 100 Hz
+            % EEG3 = pop_saveset( EEG3,  'filename', strcat('s',subNum,'_rec_',intCond,'.set'), 'filepath', savepath);% save dataset
+            % 
+            % % Reject artifacts (+- 100 uV)
+            % EEG3 = pop_eegthresh(EEG3,1,[1:4,6:9,11:20,22:26,28:63],-100,100,0,1,0,0); %except channels 27 21 10 5
+            % if ismember(0,EEG3.reject.rejthresh) % if there is anything NOT to reject
+            %     EEG3 = pop_rejepoch(EEG3,[EEG3.reject.rejthresh],0);
+            %     EEG3 = pop_saveset( EEG3,  'filename', strcat('s',subNum,'_rec_',intCond,'_artrej.set'), 'filepath', savepath);
+            % else
+            %     warning(['Subject ',subNum,' has no epochs left after artefact rejection.']);
+            % end
 
             %% Rotating in PPS epochs
-            EEG4 = pop_epoch( EEG, {'159'  '160'  '161'  '162'}, [-0.2 1], 'newname', 'PPS', 'epochinfo', 'yes');
+            EEG4 = pop_epoch( EEG, {'159'  '160'  '161'  '162'}, [-0.2 2.2], 'newname', 'PPS', 'epochinfo', 'yes');
             [ALLEEG EEG4 CURRENTSET] = pop_newset(ALLEEG, EEG4, 1,'overwrite','on','gui','off');
             EEG4 = eeg_checkset( EEG4 );
             % EEG4 = pop_rmbase( EEG4, [-200 0]); % remove baseline
@@ -111,7 +111,7 @@ if flags.eeg
             end
 
             %% Rotating in EPS epochs
-            EEG5 = pop_epoch( EEG, {'163'  '164'  '165'  '166'}, [-0.2 1], 'newname', 'EPS', 'epochinfo', 'yes');
+            EEG5 = pop_epoch( EEG, {'163'  '164'  '165'  '166'}, [-0.2 2.2], 'newname', 'EPS', 'epochinfo', 'yes');
             [ALLEEG EEG5 CURRENTSET] = pop_newset(ALLEEG, EEG5, 1,'overwrite','on','gui','off');
             EEG5 = eeg_checkset( EEG5 );
             % EEG5 = pop_rmbase( EEG5, [-200 0]); % remove baseline

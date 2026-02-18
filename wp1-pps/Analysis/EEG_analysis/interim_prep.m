@@ -3,13 +3,13 @@ function interim_prep
 
 %% Set up paths
 path_eeglab = 'C:\Users\pkovacs\Documents\MATLAB\eeglab2024.2';
-path_epoched_data = '\\kfs\fileserver\Projektdaten\CherISH\data\wp-1\EEG\08_epoched\';
+path_epoched_data = '\\kfs\fileserver\Projektdaten\CherISH\data\wp-1\EEG\08_epoched\PPSlo-EPShi\';
 path_ft = 'C:\Users\pkovacs\Documents\MATLAB\fieldtrip-20250523';
 dir_epoched_data = dir(path_epoched_data);
 addpath(path_eeglab,path_epoched_data,path_ft);
 eeglab;
 
-savedir = '\\kfs\fileserver\Projektdaten\CherISH\data\wp-1\EEG\08_epoched_ft\';
+savedir = '\\kfs\fileserver\Projektdaten\CherISH\data\wp-1\EEG\08_epoched_ft\PPSlo-EPShi\';
 
 %% Initialize variables
 % PPS_hi = {};
@@ -67,7 +67,7 @@ for dd = 3:length(dir_epoched_data) % for each epoched file
 
         % Save subject erp's as .fiff, which is the input to the Python analysis
         fiff_name = strcat(filename(1:end-11),'-ave.fif'); % has to end in -ave.fif
-        fiff_path = '\\kfs\fileserver\Projektdaten\CherISH\data\wp-1\EEG\09_fifData\';
+        fiff_path = '\\kfs\fileserver\Projektdaten\CherISH\data\wp-1\EEG\09_fifData\PPSlo-EPShi\';
         if contains(filename,'pps_hi')
             fieldtrip2fiff(strcat(fiff_path, fiff_name), PPS_hi);
         elseif contains(filename,'eps_hi')
