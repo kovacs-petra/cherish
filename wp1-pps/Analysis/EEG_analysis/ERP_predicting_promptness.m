@@ -10,10 +10,10 @@ addpath(path_eeglab);
 eeglab;
 
 % Load file containing behavioral (promptness) results
-if exist("promptness_ERP.csv","file")
-    B = readtable("promptness_ERP.csv");
+if exist("promptness_ERP_artrej.csv","file")
+    B = readtable("promptness_ERP_artrej.csv");
 else
-    path_behav = '\\KFS.oeaw.ac.at\Fileserver\Projektdaten\CherISH\data\wp-1\Behav\main_task\mainTaskData2.csv';
+    path_behav = '\\KFS.oeaw.ac.at\Fileserver\Projektdaten\CherISH\data\wp-1\Behav\main_task\mainTaskData_dbFS.csv';
     B = readtable(path_behav);
 
     % create columns for urevent and mean ERP
@@ -22,7 +22,7 @@ else
 end
 
 % Define included subjects
-allSub = [16,19];
+allSub = 3:24;
 
 % Define motion onset EEG triggers for target trials
 trigs = [153,154,157,158,161,162,165,166];
@@ -38,7 +38,7 @@ addpath(lat_folder,int_folder);
 
 % Use the channel and time clusters that are significant in the looming-receding
 % comparison
-ch = [ 1,  5, 20, 23, 24, 27, 29, 30, 31, 52, 53, 54, 55, 56];
+ch = [ 1,  5, 23, 24, 27, 29, 30, 31, 52, 53, 54, 55, 56] + 1; % copied from python, but that starts with 0
 sig_onset = 1440; % ms
 stim_offset = 2000; % significance continues, but we only go until end of stimulus
 
@@ -124,6 +124,10 @@ for ff = 3:size(lat_file,1)
                     end
                 end
 
+                % Baseline correct the EEG epoch
+                EEG.data(:,round(start_event:start_event+stim_offset)) = ...
+                    pop_rmbase(EEG, [-200 0]);
+
                 % Calculate mean amplitude and log it in B
                 t = round(start_event+sig_onset:start_event+stim_offset);
 
@@ -136,10 +140,17 @@ for ff = 3:size(lat_file,1)
                 if B.urevent(rows(rr)) == 0
                     a = nan; % handle missing blocks
                 end
+
+                % Reject any artifacts > +-100 uV
+                noEyeChannels = [1:4,6:9,11:20,22:26,28:63];
+                if ~isempty(find(abs(EEG.data(noEyeChannels,t))>100))
+                    a = nan;
+                end
+
                 B.meanERP(rows(rr)) = a;
             end
         end % current subject
     end
 %% Save .csv
-writetable(B,"promptness_ERP.csv");
+writetable(B,"promptness_ERP_artrej.csv");
 end

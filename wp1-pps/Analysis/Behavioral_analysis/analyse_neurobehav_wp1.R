@@ -13,7 +13,7 @@ pps_color = "#4B0092"
 eps_color = "#1AFF1A"
 
 # Read data
-d <- read.csv("C:\\Users\\pkovacs\\Documents\\GitHub\\cherish\\wp1-pps\\Analysis\\EEG_analysis\\promptness_ERP.csv")
+d <- read.csv("C:\\Users\\pkovacs\\Documents\\GitHub\\cherish\\wp1-pps\\Analysis\\EEG_analysis\\promptness_ERP_artrej.csv")
 
 # Rename some variables
 d <- rename(d, motion_condition = trajectory, motion_trajectory = direction)
@@ -50,7 +50,8 @@ d_rt <- d %>% filter(respTime >= 100)
 d_rt <- d_rt %>% filter(respTime <= 1000)
 
 # Filter for accurate responses
-d_acc <- d_rt %>% filter(accuracy == 1)
+d_acc <- d_rt %>% filter(accuracy == 1) %>% 
+  drop_na(meanERP)
 
 # # Plot promptness vs. trajectory
 ggplot(d_acc, aes(motion_condition, promptness)) +
