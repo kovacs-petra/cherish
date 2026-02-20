@@ -169,7 +169,7 @@ for c = 1:length(EEG.event)
 end
 
 % Save latency corrected events for later importing
-outFile = strcat('02_latencyCorrected\cleaned_events_s',num2str(current_subject),'.txt');
+outFile = strcat('\\KFS.oeaw.ac.at\Fileserver\Projektdaten\CherISH\data\wp-1\EEG\02_latencyCorrected',num2str(current_subject),'.txt');
 eventTable = struct2table(EEG.event);
 writetable(eventTable, outFile, 'Delimiter', '\t');
 
