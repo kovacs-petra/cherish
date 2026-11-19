@@ -1,15 +1,17 @@
-function interim_prep
+function interim_prep(paths)
 % Prepare CherISH WP-1 data for interim analysis in Python
+%
+% Input:
+% paths - struct with fields:
+%   epoched_folder
+%   eeglab
+%   ft (FieldTrip)
+%   fiff_folder
 
 %% Set up paths
-path_eeglab = 'C:\Users\pkovacs\Documents\MATLAB\eeglab2024.2';
-path_epoched_data = '\\kfs\fileserver\Projektdaten\CherISH\data\wp-1\EEG\08_epoched\PPSlo-EPShi\';
-path_ft = 'C:\Users\pkovacs\Documents\MATLAB\fieldtrip-20250523';
-dir_epoched_data = dir(path_epoched_data);
-addpath(path_eeglab,path_epoched_data,path_ft);
+dir_epoched_data = dir(paths.epoched_folder);
+addpath(paths.eeglab,paths.epoched_folder,paths.ft);
 eeglab;
-
-savedir = '\\kfs\fileserver\Projektdaten\CherISH\data\wp-1\EEG\08_epoched_ft\PPSlo-EPShi\';
 
 %% Initialize variables
 % PPS_hi = {};
@@ -25,7 +27,7 @@ for dd = 3:length(dir_epoched_data) % for each epoched file
         ss = str2double(filename(2:3)); % Subject number (sXX)
 
         % Load EEGlab .set file
-        EEG = pop_loadset('filename',filename,'filepath', path_epoched_data);
+        EEG = pop_loadset('filename',filename,'filepath', paths.epoched_folder);
         
         % Convert EEGlab to FieldTrip
         dataFT = eeglab2fieldtrip(EEG,'preprocessing');
@@ -42,40 +44,38 @@ for dd = 3:length(dir_epoched_data) % for each epoched file
         % cfg.trials = find(ismember(string(dataFT.trialinfo{:,8}), {'163', '164', '165', '166'}));
 
         % Calculate avg ERPs for each condition
-        % Choose smaller epoch: e.g. -100 to 500 ms?
         if contains(filename,'pps_hi')
             PPS_hi = ft_timelockanalysis(cfg,dataFT);
             savename = strcat(filename(1:end-11), '.mat');
-            save(strcat(savedir,savename),'PPS_hi');
+            save(strcat(paths.epoched_folder,savename),'PPS_hi');
 
         elseif contains(filename,'eps_hi')
             EPS_hi = ft_timelockanalysis(cfg,dataFT);
             savename = strcat(filename(1:end-11), '.mat');
-            save(strcat(savedir,savename),'EPS_hi');
+            save(strcat(paths.epoched_folder,savename),'EPS_hi');
 
         elseif contains(filename,'pps_lo')
             PPS_lo = ft_timelockanalysis(cfg,dataFT);
             savename = strcat(filename(1:end-11), '.mat');
-            save(strcat(savedir,savename),'PPS_lo');
+            save(strcat(paths.epoched_folder,savename),'PPS_lo');
 
         elseif contains(filename,'eps_lo')
             EPS_lo = ft_timelockanalysis(cfg,dataFT);
             savename = strcat(filename(1:end-11), '.mat');
-            save(strcat(savedir,savename),'EPS_lo');
+            save(strcat(paths.epoched_folder,savename),'EPS_lo');
 
         end
 
         % Save subject erp's as .fiff, which is the input to the Python analysis
         fiff_name = strcat(filename(1:end-11),'-ave.fif'); % has to end in -ave.fif
-        fiff_path = '\\kfs\fileserver\Projektdaten\CherISH\data\wp-1\EEG\09_fifData\PPSlo-EPShi\';
         if contains(filename,'pps_hi')
-            fieldtrip2fiff(strcat(fiff_path, fiff_name), PPS_hi);
+            fieldtrip2fiff(strcat(paths.fiff_folder, fiff_name), PPS_hi);
         elseif contains(filename,'eps_hi')
-            fieldtrip2fiff(strcat(fiff_path, fiff_name), EPS_hi);
+            fieldtrip2fiff(strcat(paths.fiff_folder, fiff_name), EPS_hi);
         elseif contains(filename,'pps_lo')
-            fieldtrip2fiff(strcat(fiff_path, fiff_name), PPS_lo);
+            fieldtrip2fiff(strcat(paths.fiff_folder, fiff_name), PPS_lo);
         elseif contains(filename,'eps_lo')
-            fieldtrip2fiff(strcat(fiff_path, fiff_name), EPS_lo);
+            fieldtrip2fiff(strcat(paths.fiff_folder, fiff_name), EPS_lo);
         end
   
     end

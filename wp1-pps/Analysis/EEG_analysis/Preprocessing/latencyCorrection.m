@@ -1,4 +1,4 @@
-function [EEG] = latencyCorrection(EEGin)
+function [EEG] = latencyCorrection(EEGin,paths)
 % Previous usage: [EEG] = latencyCorrection(EEG,eventList,subjID)
 % No latencies added at
 % - start/end of block
@@ -74,10 +74,6 @@ eventOnsLats = [EEG.event(onsetList).latency]'; % Trigger onset latencies
 eventCngLats = [EEG.event(changeList).latency]'; % Trigger change latencies
 
 maxGrads = zeros(length(eventOnsLats),1); % Store samplePoint of max simGradient in trial , (nr. of onsets = nr of trials)
-
-% logName=fullfile('D:\WP1c\data_processed',subjID,[subjID '_ICA_log']); % for ICA log
-% % logName=fullfile('E:\WP1c\data_processed',subjID,[subjID '_ICA_log']); % for ICA log
-% diary (logName)
 
 for ii=1:length(eventOnsLats)
     % %     if ii~=length(eventOnsLats) 
@@ -169,7 +165,7 @@ for c = 1:length(EEG.event)
 end
 
 % Save latency corrected events for later importing
-outFile = strcat('\\KFS.oeaw.ac.at\Fileserver\Projektdaten\CherISH\data\wp-1\EEG\02_latencyCorrected',num2str(current_subject),'.txt');
+outFile = strcat(paths.lat_folder,num2str(current_subject),'.txt');
 eventTable = struct2table(EEG.event);
 writetable(eventTable, outFile, 'Delimiter', '\t');
 

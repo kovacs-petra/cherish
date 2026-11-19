@@ -4,7 +4,8 @@ library(tidyverse)
 library(scales)
 
 # Read data
-e <- read.csv("\\\\KFS.oeaw.ac.at\\Fileserver\\ProjektDaten\\CherISH\\data\\wp-1\\Behav\\extern_task\\externData.csv")
+path_to_data <- "\\externData.csv"
+e <- path_to_data
 
 # Convert to factor where necessary
 e <- e %>% mutate_at(c('participant','sourceInt','trajectory','side','respType'),

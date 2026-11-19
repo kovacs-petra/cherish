@@ -1,4 +1,18 @@
-function import_cherish
+function import_cherish(paths)
+% Import EEG data from .eeg to .set and perform initial preprocessing:
+% check and correct triggers if needed, perform audio latency correction,
+% apply bandpass filter. The output of each of these steps is stored
+% separately.
+%
+% Input:
+% paths - struct with paths to data folders in the following fields:
+%   imp_folder
+%   corr_folder 
+%   lat_folder 
+%   filt_folder 
+%   gsr_folder
+%   loc_file
+%   logfiles (Nx1 cell array of the paths to the log files of each subject)
 
 %% Flags
 flags.imp = 1; % import raw data into .set file?
@@ -14,16 +28,6 @@ dir_file = dir(dir_name);
 num_file = size(dir_file);
 addpath(dir_name)
 saved_set = 0;
-
-% Save paths have to be 'char', not "string"!
-imp_folder = '\\kfs.oeaw.ac.at\fileserver\Projektdaten\CherISH\data\wp-1\EEG\01_imported\';
-corr_folder = '\\kfs.oeaw.ac.at\fileserver\Projektdaten\CherISH\data\wp-1\EEG\01_triggerCorrected\';
-lat_folder = '\\kfs.oeaw.ac.at\fileserver\Projektdaten\CherISH\data\wp-1\EEG\02_latencyCorrected\';
-filt_folder = '\\kfs.oeaw.ac.at\fileserver\Projektdaten\CherISH\data\wp-1\EEG\03_filtered\';
-gsr_folder = '\\kfs.oeaw.ac.at\fileserver\Projektdaten\CherISH\data\wp-1\EEG\03_gsr\';
-
-% EEGLab path
-% addpath 'C:\Users\pkovacs\Documents\MATLAB\eeglab2024.2'
 
 for i=3:num_file(1)
     filename = dir_file(i).name;
@@ -52,19 +56,19 @@ for i=3:num_file(1)
         % save imported
         [ALLEEG, EEG, CURRENTSET] = eeg_store( ALLEEG, EEG, 0 );
         EEG = eeg_checkset( EEG );
-        EEG = pop_saveset( EEG,  'filename', strcat(filename(1:end-5),'.set'), 'filepath', imp_folder);
+        EEG = pop_saveset( EEG,  'filename', strcat(filename(1:end-5),'.set'), 'filepath', paths.imp_folder);
         end
 
         %% Correcting trigger error
-        EEG = pop_loadset('filename',strcat(filename(1:end-5),'.set'),'filepath', imp_folder);
+        EEG = pop_loadset('filename',strcat(filename(1:end-5),'.set'),'filepath', paths.imp_folder);
         if flags.trigCorr(current_subj) 
             disp(['Subject ',num2str(current_subj),' had too many triggers sent out, we correct the mistake.']);
             
-            EEG = correctTriggerMistake(EEG,current_subj);
+            EEG = correctTriggerMistake(EEG,current_subj,paths.logfiles{subNum,1});
 
             [ALLEEG, EEG, CURRENTSET] = eeg_store( ALLEEG, EEG, 0 );
             EEG = eeg_checkset( EEG );
-            EEG = pop_saveset( EEG,  'filename', strcat(filename(1:end-5),'_trCorr.set'), 'filepath', corr_folder);
+            EEG = pop_saveset( EEG,  'filename', strcat(filename(1:end-5),'_trCorr.set'), 'filepath', paths.corr_folder);
         else % remove "T" entry from trigger type
             tmp = {EEG.event.type}; % Initial char array
             tmp = cellfun(@(x) x(2:end),tmp,'UniformOutput',false); % Reject first entry ("T")
@@ -77,7 +81,7 @@ for i=3:num_file(1)
             for ii = 1:length(tmpEventList)
             	EEG.event(ii).type = tmpEventList(:,ii);
             end
-            EEG = pop_saveset( EEG,  'filename', strcat(filename(1:end-5),'_trCorr.set'), 'filepath', corr_folder);
+            EEG = pop_saveset( EEG,  'filename', strcat(filename(1:end-5),'_trCorr.set'), 'filepath', paths.corr_folder);
         end
 
         %% Latency correction based on StimTrak
@@ -85,13 +89,13 @@ for i=3:num_file(1)
             
             % Adjust trigger latencies based on the StimTrak channel
             disp('Latency correction requested.')
-            EEG = pop_loadset('filename',strcat(filename(1:end-5),'_trCorr.set'),'filepath', corr_folder);
-            EEG = latencyCorrection(EEG);
+            EEG = pop_loadset('filename',strcat(filename(1:end-5),'_trCorr.set'),'filepath', paths.corr_folder);
+            EEG = latencyCorrection(EEG,paths);
             
             % save latency corrected
             [ALLEEG, EEG, CURRENTSET] = eeg_store( ALLEEG, EEG, 0 );
             EEG = eeg_checkset( EEG );
-            EEG = pop_saveset( EEG,  'filename', strcat(filename(1:end-5),'_latCorr','.set'), 'filepath', lat_folder);
+            EEG = pop_saveset( EEG,  'filename', strcat(filename(1:end-5),'_latCorr','.set'), 'filepath', paths.lat_folder);
         end
 
         %% Bandpass filtering
@@ -99,7 +103,7 @@ for i=3:num_file(1)
             
             % Separate EEG and GSR datasets
             disp('Filtering requested.')
-            EEG = pop_loadset('filename',strcat(filename(1:end-5),'_latCorr','.set'),'filepath', lat_folder);
+            EEG = pop_loadset('filename',strcat(filename(1:end-5),'_latCorr','.set'),'filepath', paths.lat_folder);
             
             EEG_GSR = pop_select(EEG,'channel',{'GSR'}); % Keep only this channel
             [ALLEEG, EEG_GSR, CURRENTSET] = eeg_store( ALLEEG, EEG_GSR, 0 );
@@ -121,9 +125,8 @@ for i=3:num_file(1)
             num_chans = EEG.nbchan;
 
             if current_subj >= 12
-                % loc_file = 'C:\Users\pkovacs\Documents\MATLAB\eeglab2024.2\plugins\dipfit\standard_BEM\elec\standard_1020.elc';
-                loc_file = 'C:\Users\pkovacs\Documents\MATLAB\eeglab2025.0.0\plugins\dipfit\standard_BEM\elec\standard_1020.elc';
-                EEG = pop_chanedit(EEG, 'append', num_chans, 'changefield', {num_chans+1, 'labels', 'FCz'}, 'lookup', loc_file, 'setref', {1:num_chans, 'FCz'});
+               
+                EEG = pop_chanedit(EEG, 'append', num_chans, 'changefield', {num_chans+1, 'labels', 'FCz'}, 'lookup', paths.loc_file, 'setref', {1:num_chans, 'FCz'});
                 EEG.data(end+1,:) = zeros(1,length(EEG.data));
                 EEG = pop_reref( EEG, [],'exclude',[5 10 21 27],'keepref','on','refloc', struct('labels', {'FCz'}, 'type', {''}, 'theta', {0.7867}, 'radius', {0.095376}, 'X', {27.39}, 'Y', {-0.3761}, 'Z', {88.668}, 'sph_theta', {-0.7867}, 'sph_phi', {72.8323}, 'sph_radius', {92.8028}, 'urchan', {num_chans+1}, 'ref', {''}, 'datachan', {0}));
                 [ALLEEG EEG] = eeg_store(ALLEEG, EEG, CURRENTSET);
@@ -140,7 +143,7 @@ for i=3:num_file(1)
 
 
             % Save filtered EEG data
-            EEG = pop_saveset( EEG,  'filename', strcat(filename(1:end-5),'_filt','.set'), 'filepath', filt_folder);
+            EEG = pop_saveset( EEG,  'filename', strcat(filename(1:end-5),'_filt','.set'), 'filepath', paths.filt_folder);
             [ALLEEG EEG] = eeg_store(ALLEEG, EEG, CURRENTSET);
         end
 
@@ -156,7 +159,7 @@ for i=3:num_file(1)
             % Save filtered GSR data
             % [ALLEEG EEG_GSR] = eeg_store(ALLEEG, EEG_GSR, CURRENTSET);
             % EEG_GSR = eeg_checkset( EEG_GSR );
-            EEG_GSR = pop_saveset( EEG_GSR,  'filename', strcat(filename(1:end-5),'_gsr','.set'), 'filepath', gsr_folder);
+            EEG_GSR = pop_saveset( EEG_GSR,  'filename', strcat(filename(1:end-5),'_gsr','.set'), 'filepath', paths.gsr_folder);
             [ALLEEG EEG_GSR] = eeg_store(ALLEEG, EEG_GSR, CURRENTSET);
         end
     end

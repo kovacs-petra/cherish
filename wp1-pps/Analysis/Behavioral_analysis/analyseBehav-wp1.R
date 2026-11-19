@@ -5,7 +5,8 @@ library(lme4)
 library(broom.mixed)
 
 # Read data
-d <- read.csv("\\\\kfs.oeaw.ac.at\\Fileserver\\ProjektDaten\\CherISH\\data\\wp-1\\Behav\\main_task\\mainTaskData.csv")
+path_to_data <- "\\mainTaskData.csv"
+d <- path_to_data
 
 # Convert to factor where necessary
 d <- d %>% mutate_at(c('subNum','onsetDistance','offsetDistance','direction',
@@ -65,41 +66,5 @@ lm1 <- lm(promptness ~ sound_direction + distance_at_offset +
 
 tidy(lm1, conf.int = TRUE)
 
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
-# Resources
-ggplot(d, aes(x=distance,y=abs(extRatingRescaled),fill=source_intensity)) +
-  geom_boxplot(aes(group=paste(distance,source_intensity))) +
-  # geom_point(aes(group = source_intensity), position=position_dodge(width=.15),
-  # shape="x") +
-  facet_wrap(vars(stimulus_type)) +
-  # Mark end of arms with dashed horizontal line:
-  geom_segment(aes(x = 0, y = PPS, xend = 2, yend = PPS), color = "red",
-               linetype = "dashed") +
-  # Mark out-of-head border with dashed horizontal line:
-  geom_segment(aes(x = 0, y = intern, xend = 2, yend = intern), color = "green",
-               linetype = "dashed")
 
-# # Now facet by intensity, and group by stim type (so, the other way around)
-ggplot(d, aes(x=distance,y=abs(extRatingRescaled),fill=stimulus_type)) +
-  geom_boxplot(aes(group=paste(distance,stimulus_type))) +
-  facet_wrap(vars(source_intensity)) +
-  # Mark end of arms with dashed horizontal line:
-  geom_segment(aes(x = 0, y = PPS, xend = 2, yend = PPS), color = "red",
-               linetype = "dashed") +
-  # Mark out-of-head border with dashed horizontal line:
-  geom_segment(aes(x = 0, y = intern, xend = 2, yend = intern), color = "green",
-               linetype = "dashed")
-
-# Facet by subject
-ggplot(d, aes(x=distance,y=abs(extRatingRescaled),fill=source_intensity)) +
-  geom_boxplot(aes(group=paste(distance,source_intensity,stimulus_type))) +
-  geom_point(aes(group = source_intensity), position=position_dodge(width=.15),
-             shape = "x") +
-  facet_grid(rows=vars(stimulus_type),cols=vars(subNum)) +
-  # Mark end of arms with dashed horizontal line:
-  geom_segment(aes(x = 0, y = PPS, xend = 2, yend = PPS), color = "red",
-               linetype = "dashed") +
-  # Mark out-of-head border with dashed horizontal line:
-  geom_segment(aes(x = 0, y = intern, xend = 2, yend = intern), color = "green",
-               linetype = "dashed")
 

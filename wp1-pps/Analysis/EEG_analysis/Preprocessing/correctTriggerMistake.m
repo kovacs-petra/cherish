@@ -1,4 +1,8 @@
-function EEG = correctTriggerMistake(EEG,subNum)
+function EEG = correctTriggerMistake(EEG,subNum,logfile)
+% There were many irrelevant triggers sent out in the EEG data of
+% participants 1-10 by mistake. This script discards those triggers while
+% keeping all the original triggers.
+
 % Initial setup
 logIndex = 2; % Skip header row of logVar
 deleteIndices = [];        % To collect indices of events to delete
@@ -6,8 +10,6 @@ changefieldList = {};      % For changing field values
 insertList = {};           % For inserting new events
 
 % Load subject's logVar
-logfile = strcat('\\kfs\fileserver\Projektdaten\CherISH\data\wp-1\Behav\subject',...
-    num2str(subNum),'\sub',num2str(subNum),'Log.mat');
 load(logfile,"logVar");
 
 % Adjust event list: Convert to binary and take only last 6 bits
